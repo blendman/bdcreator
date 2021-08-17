@@ -1,0 +1,100 @@
+{
+  "PathSave"     : "save\\",
+  "Modeautomatic": 1,
+  "pathOpen"     : "save\\",
+  "Zoom"         : 20,
+  "Action"       : 0,
+  "Project"      : {
+      "MargeRight"      : 150,
+      "MargeLeft"       : 150,
+      "Nbpage"          : 0,
+      "Width"           : 2500,
+      "MargeBottom"     : 200,
+      "Name"            : "",
+      "Date"            : "",
+      "StrokeSize"      : 8,
+      "Width_mm"        : 210,
+      "dpi"             : 300,
+      "StrokeAlpha"     : 255,
+      "Height"          : 3500,
+      "StrokeColor"     : 0,
+      "Info"            : "",
+      "page"            : [
+          {
+            "MargeRight"      : 0,
+            "MargeLeft"       : 0,
+            "Width"           : 0,
+            "MargeBottom"     : 0,
+            "Nbline"          : 0,
+            "Height"          : 0,
+            "Number"          : 0,
+            "NbcaseByline"    : 0,
+            "SpacebetweenCase": 0,
+            "line"            : [
+                {
+                  "NbCase": 0,
+                  "h"     : 0,
+                  "caze"  : [
+                      {
+                        "Depth"            : 0,
+                        "NotuseMargeL"     : 0,
+                        "nbImage"          : 0,
+                        "NotuseMargeR"     : 0,
+                        "NotuseMargeTop"   : 0,
+                        "NoBorder"         : 0,
+                        "image"            : [
+                            {
+                              "alpha": 0,
+                              "depth": 0,
+                              "img"  : 0,
+                              "h"    : 0,
+                              "scale": 0,
+                              "text" : "",
+                              "w"    : 0,
+                              "x"    : 0,
+                              "y"    : 0,
+                              "file" : ""
+                            }
+                          ],
+                        "NotRectangle"     : 0,
+                        "h"                : 0,
+                        "SizeBorder"       : 0,
+                        "NotuseMargeBottom": 0,
+                        "w"                : 0,
+                        "x"                : 0,
+                        "y"                : 0,
+                        "imageFinal"       : {
+                            "alpha": 0,
+                            "depth": 0,
+                            "img"  : 0,
+                            "h"    : 0,
+                            "scale": 0,
+                            "text" : "",
+                            "w"    : 0,
+                            "x"    : 0,
+                            "y"    : 0,
+                            "file" : ""
+                          }
+                      }
+                    ],
+                  "w"     : 0,
+                  "x"     : 0,
+                  "y"     : 0
+                }
+              ],
+            "SpacebetweenLine": 0,
+            "MargeTop"        : 0
+          }
+        ],
+      "SpacebetweenCase": 50,
+      "SpacebetweenLine": 50,
+      "Height_mm"       : 297,
+      "MargeTop"        : 250
+    },
+  "ToolbarH"     : 30,
+  "PanelW"       : 250,
+  "PathImage"    : "data\\images\\myproject\\",
+  "ShowSelected" : 1,
+  "PathExport"   : "save\\",
+  "ShowMarge"    : 0
+}
