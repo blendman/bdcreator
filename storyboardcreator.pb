@@ -77,7 +77,7 @@
 ; priorité :
 ; - save/load : case image
 ; - save/load : case text
-; - case text : change font
+; ok - case text : change font
 
 
 ; 17.8.2021 0.07 (9)
@@ -95,6 +95,7 @@
 ; - select line & case is bugged if move viewx/y
 ; - we can't move selected case in Y and cant change its height
 ; - when open a file, if the page isn't made with automatic, automatic should not be used.
+; - open a file, the gadget to select pages isn't updated
 
 
 ; 16.8.2021 0.06 (8)
@@ -2954,9 +2955,10 @@ EndIf
 
 
 ; IDE Options = PureBasic 5.73 LTS (Windows - x86)
-; CursorPosition = 2206
-; FirstLine = 350
-; Folding = xhAAPBAwDAKm-ABo6PAs+Hgu0BTBmG7Hg+AAIAk191df-fmT-P54-WGPDh8D6
+; CursorPosition = 97
+; FirstLine = 72
+; Folding = BgAAABAAAAAAAAAAAAAAAAgu0BAACAAAAAAAIAAAAAAAAAAAAAAAAAAAAAAA5
 ; EnableXP
+; DisableDebugger
 ; Warnings = Display
 ; EnablePurifier
