@@ -49,10 +49,13 @@
 ; Priority :
 ; - add a menu file : preference
 ; - page : delete, move < >
-; - add a "edition mode" :  page, graphics, text
-; - case : set zoom
+; ?? - add a "edition mode" :  page, graphics, text
+; ??? - case : set zoom
 ; - export in png layers.
 ; - show the space (between line and case)
+; - miror image
+; - image repeated/seamless (for bg)
+; - image saturation, brightness, contrast
 
 ; ok :
 ; - add character
@@ -67,6 +70,9 @@
 ; - export image (full image) 
 ; - add a menu File, Edit, view, page..
 ; - page : add, select
+; ok - save/ : case image
+; ok - save : case text
+; ok - case text : change font
 
 ; bugs : 
 ; ok - select line is bugged
@@ -75,9 +81,21 @@
 ; - mode normal : si on ajoute une case, il faudrait qu'elle soit créé à droite, après la dernière case et avec la largeur disponible (pas w=0 et x=0)
 
 ; priorité :
-; - save/load : case image
-; - save/load : case text
-; ok - case text : change font
+; - load : case image
+; - load : case text
+; - add fleche de bulle system
+
+
+; 17.8.2021 0.07.5 (9)
+; // New
+; - Window_EditCase : show red box on selected image
+; - Window_EditCase : clic on object (image or text) : select the object.
+; - structure sImg : add   typ (image, text) & shaptyp (ellipse,rectangle)
+; - Doc_save() : save case()\image() !
+; - Doc_save() \image() : add typ, shaptyp
+; - Case_Update() : add arguments : typ=0,shaptyp=0
+; // Fixes
+; - when change text, the scale and alpha of image shouldn't be reseted
 
 
 ; 17.8.2021 0.07 (9)
@@ -212,7 +230,7 @@
 ; - UpdateCanvasMain() : create the storyboard (page & cases for the moment)
 ;}
 
-#BDC_ProgramVersion = "0.07"
+#BDC_ProgramVersion = "0.07.5"
 #BDC_ProgramName = "BD Creator"
 Enumeration 
   
@@ -411,6 +429,8 @@ EndStructure
 
 Structure sImg
   img.i
+  typ.a ; 0=image, 1=text
+  shapetyp.a ; 0 = ellipse, 1= rectangle
   file$
   text$
   fontText$
@@ -1682,6 +1702,8 @@ Procedure Doc_Open()
 EndProcedure
 Procedure Doc_Save(filename$=#Empty$, saveas=0)
   
+  virg$ = "{{virgule}}"
+  
   If filename$ =#Empty$ Or saveas = 1
     filename$ = SaveFileRequester(lang("Save"), GetCurrentDirectory(),"BDC|*.bdc",0)
   EndIf
@@ -1755,6 +1777,19 @@ Procedure Doc_Save(filename$=#Empty$, saveas=0)
                   txt$ + Str(\NotuseMargeTop)+d$+Str(\NotuseMargeBottom)+d$+Str(\NotuseMargeL)+d$+Str(\NotuseMargeR)+d$
                   WriteStringN(0, txt$) 
                 EndWith
+                
+                ; save image and text
+                For l=0 To ArraySize(project\page(i)\Line(j)\caze(k)\image())
+                  With project\page(i)\Line(j)\caze(k)\image(l)
+                  txt$ = "image,"+Str(i)+d$+Str(j)+d$+Str(k)+d$+Str(l)+d$
+                  txt$ + Str(\x)+d$+Str(\y)+d$+Str(\w)+d$+Str(\h)+d$
+                  txt$ + Str(\typ)+d$+Str(\shapetyp)+d$+Str(\Depth)+d$+Str(\alpha)+d$+Str(\scale)+d$
+                  txt$ + ReplaceString(\file$, ",",virg$)+d$+ReplaceString(\text$,",",virg$)+d$
+                  txt$ + \fontName$+d$+Str(\fontSize)+d$+ReplaceString(\fontText$,",",virg$)+d$
+                  WriteStringN(0, txt$) 
+                  EndWith
+                Next 
+                
               Next
               
             Next
@@ -2001,9 +2036,21 @@ Procedure UpdateCanvas_WinEditCase()
       ; draw image of the case
       For i=0 To ArraySize(\image())
         If IsImage(\image(i)\img)
-          MovePathCursor(vx+\image(i)\x, vy+\image(i)\y)
+          ; set variables
           s.d = \image(i)\scale * 0.01
-          DrawVectorImage(ImageID(\image(i)\img),\image(i)\alpha,\image(i)\w * s,\image(i)\h *s)
+          x = vx+\image(i)\x
+          y = vy+\image(i)\y
+          w2 = \image(i)\w * s
+          h2 = \image(i)\h * s
+          ; draw image
+          MovePathCursor(x, y)
+          DrawVectorImage(ImageID(\image(i)\img),\image(i)\alpha,w2,h2)
+          If i = imageId
+            AddPathBox(x,y,w2,h2)
+            VectorSourceColor(RGBA(255,0,0,255))
+            StrokePath(2)
+          EndIf
+          
         EndIf
       Next
     EndWith
@@ -2042,7 +2089,7 @@ Procedure Window_EditCase_UpdateList()
   EndWith
 EndProcedure
 
-Procedure Case_Update(img,text$,file$,set=0,scale=100,alpha=255)
+Procedure Case_Update(img,text$,file$,set=0,scale=100,alpha=255,typ=0,shapetyp=0)
    Shared wec_fontname$, wec_fontsize
   
   With project\page(pageID)\Line(LineId)\caze(CaseID)
@@ -2066,6 +2113,9 @@ Procedure Case_Update(img,text$,file$,set=0,scale=100,alpha=255)
     \image(n)\depth = 0
     \image(n)\img = img
     
+    \image(n)\typ = typ
+    \image(n)\shapetyp = shapetyp
+    
     \image(n)\fontText$ = text$
     \image(n)\fontName$ = wec_fontname$
     \image(n)\fontSize = wec_fontsize
@@ -2075,7 +2125,7 @@ Procedure Case_Update(img,text$,file$,set=0,scale=100,alpha=255)
     \image(n)\w = ImageWidth(img)
     \image(n)\h = ImageHeight(img)
     \image(n)\scale = scale
-    \image(n)\ALpha = alpha
+    \image(n)\alpha = alpha
     
     ImageId = n
     
@@ -2094,8 +2144,8 @@ Procedure Case_SetText(text$, update=0)
   Shared wec_fontname$, wec_fontsize
   If text$ <> #Empty$
     
-    w= project\page(pageID)\Line(LineId)\caze(CaseID)\w
-    h= project\page(pageID)\Line(LineId)\caze(CaseID)\h
+    w = project\page(pageID)\Line(LineId)\caze(CaseID)\w
+    h = project\page(pageID)\Line(LineId)\caze(CaseID)\h
     ; variable ot insert the text in the ellipse or rectangle
     d = 2
     ; get the shape typ for phylacter (bulle) (0 = ellipse, 1= rectangle)
@@ -2128,7 +2178,7 @@ Procedure Case_SetText(text$, update=0)
       DrawVectorParagraph(text$,w/d,h,#PB_VectorParagraph_Center)
       w1 = VectorTextWidth(text$,#PB_VectorText_Visible)
       h1 = VectorParagraphHeight(text$,w/d,h)
-      Debug Str(h1)+"/"+Str(h)
+      ;Debug Str(h1)+"/"+Str(h)
       StopVectorDrawing()
     EndIf
     ;       w2 = w/d
@@ -2171,7 +2221,12 @@ Procedure Case_SetText(text$, update=0)
     EndIf
     
     If update
-      Case_Update(img, text$, file$,1)
+      With project\page(pageID)\Line(LineId)\caze(CaseID)\image(imageId)
+        scale = \scale
+        alpha = \alpha
+        shapeTyp = \shapetyp
+      EndWith
+      Case_Update(img, text$, file$,1,scale,alpha,1,shapeTyp)
     EndIf
   EndIf
   ProcedureReturn img
@@ -2300,7 +2355,23 @@ Procedure Event_WinEditcaseCanvas()
       y = GetGadgetAttribute(gad, #PB_Canvas_MouseY)/z
       If wec_clic=0
         wec_clic =1
+        
         With project\page(pageId)\Line(LineId)\caze(CaseID)
+          
+          ; select the image under the clic mouseleft
+          oldImageId = imageId
+          For k=0 To ArraySize(\image())
+            s.d=\image(k)\scale*0.01
+            If x>=wec_vx+\image(k)\x And x<=wec_vx+\image(k)\x+(s * \image(k)\w) And y>=wec_vy+\image(k)\y And y<=wec_vy+\image(k)\y+(s * \image(k)\h)
+              imageId = k
+              Window_EditCase_SetGadgetState()
+            EndIf
+          Next
+          If oldImageId <> ImageID
+            oldImageId = ImageID
+            UpdateCanvas_WinEditCase()
+          EndIf
+          
           wec_start\x = x - \image(ImageID)\x
           wec_start\y = y - \image(ImageID)\y
           wec_startscale = \image(ImageID)\scale
@@ -2471,7 +2542,11 @@ Procedure Window_EditCase()
       AddGadget(#G_win_EditCase_BankSubFolder, #Gad_Cbbox,x,y,w1,h1,"",0,0,lang("Set the folder for image")) : x+W1+5
       WEC_updatebankimage()
       AddGadget(#G_win_EditCase_BankAdd, #Gad_Btn,x,y,h1,h1,Lang("+"),0,0,lang("add the selected image on the case")) : y+h1+5
-
+      
+      x= 5
+      ; add options gagdets for each image : scale, alpha, x, y 
+      
+      
       x=5
       If ScrollAreaGadget(#G_win_EditCase_BankSA,x,y,wp,h0,wp-25,h0+200)
         If CanvasGadget(#G_win_EditCase_Bankcanvas,0,0,wp-30,h0)
@@ -2481,6 +2556,11 @@ Procedure Window_EditCase()
       EndIf
       ;}
       
+;       AddGadgetItem(#G_win_EditCase_Panel,-1,lang("Options"))
+;       ;{
+;       x=5 : y=5
+;       ; options for default image or text creation (ex : scale, alpha, x,y ...)
+;       ;}
       
       AddGadgetItem(#G_win_EditCase_Panel,-1,lang("Case"))
       x=5 : y=5
@@ -2955,10 +3035,9 @@ EndIf
 
 
 ; IDE Options = PureBasic 5.73 LTS (Windows - x86)
-; CursorPosition = 97
-; FirstLine = 72
-; Folding = BgAAABAAAAAAAAAAAAAAAAgu0BAACAAAAAAAIAAAAAAAAAAAAAAAAAAAAAAA5
+; CursorPosition = 2546
+; FirstLine = 311
+; Folding = BgEAIBAAAAAAAAAAAAAAAAgu0BAAGAAAgW-AgAQAw4gJH8FBg-HAgegAAAAAAw
 ; EnableXP
-; DisableDebugger
 ; Warnings = Display
 ; EnablePurifier
