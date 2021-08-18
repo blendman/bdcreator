@@ -24,14 +24,14 @@
 ; ok 0.05 - Case\image : modifier x,y,w,h,scale, alpha
 ; ok 0.06 - Case : bank -> Pouvoir ajouter un personnage (issu du dossier par defaut). 
 ; ok 0.06 - Bank Canvas (folder characters -> clique et ça le place). 
-; ok 0.06 - Personnage : position, taille 
-; - Personnage : « lumière » (pour l'assombrir en 1er plan).
+; ok 0.06 - Personnage (image) : position, taille 
+; - Image: brightness (pour l'assombrir en 1er plan).
 ; V 0.09
 ; ok 0.04 - Menu opendoc
 ; - Enlever des pages
 ; - Insérer une page avant/après la page actuelle
 ; V  0.10
-; ok 0.05 - Case : pouvoir ajouter 1 ou plusieurs bulles + texte. Position.
+; ok 0.05 - Case : pouvoir ajouter 1 ou plusieurs bubles + texte. Position.
 ; ok 0.03 - Menu newdoc
 ; V 0.11
 ; ok 0.05 - Case : Pouvoir ajouter un décor ou + (avec depth, position, scale, alpha).
@@ -60,7 +60,7 @@
 ; ok :
 ; - add character
 ; - add background
-; - add bulles and text.
+; - add bubles and text.
 ; - add image
 ; - doc_open()
 ; - in normal mode (not automatic) : change the x/y/w/h of case selected 
@@ -70,20 +70,33 @@
 ; - export image (full image) 
 ; - add a menu File, Edit, view, page..
 ; - page : add, select
-; ok - save/ : case image
-; ok - save : case text
-; ok - case text : change font
+; - save : case image / text
+; - case text : change font
+; - add fleche de buble system
+; - load : case image
+; - load : case text
 
 ; bugs : 
 ; ok - select line is bugged
 ; ok - select line & case is bugged if move viewx/y
 ; ok - on ne peut pas bouger la case en Y ni changer sa hauteur
-; - mode normal : si on ajoute une case, il faudrait qu'elle soit créé à droite, après la dernière case et avec la largeur disponible (pas w=0 et x=0)
+; ok - buble : taille in H not ok
+ ; - mode normal : si on ajoute une case, il faudrait qu'elle soit créé à droite, après la dernière case et avec la largeur disponible (pas w=0 et x=0)
 
 ; priorité :
-; - load : case image
-; - load : case text
-; - add fleche de bulle system
+
+
+; 18.8.2021 0.08 (9)
+; // New
+; - add bubble "arrow" (ellipse)
+; - Doc_open() : case image
+; - Doc_open() : case text
+; // changes
+; - Doc_Save() : write image line only if image exists or is used
+; - Doc_Save() : write tex line only if buble exists or is used
+; - Some change in Case_SetText() to create the buble when Doc_open()
+; // fixes
+; - bubble heigth wasn't ok
 
 
 ; 17.8.2021 0.07.5 (9)
@@ -132,7 +145,7 @@
 
 ; 12.8.2021 0.05.6 (7)
 ; // new
-; - case_settext() : to change a text (bulle).
+; - case_settext() : to change a text (buble).
 
 
 ; 9.8.2021 0.05.5 (6)
@@ -151,7 +164,7 @@
 ; // new
 ; - load a comic font (free : komika hand)
 ; - Window_EditCase() : we can add a text ! 
-; - Window_EditCase() : the text has an allipse (for the bulle)! 
+; - Window_EditCase() : the text has an allipse (for the buble)! 
 ; - Window_EditCase() : btn add text
 ; - UpdateMaincanvas_withimage : verify if size of case has hcnaged, if yes, it update the image
 ; - UpdateCanvasMain : draw image
@@ -230,7 +243,7 @@
 ; - UpdateCanvasMain() : create the storyboard (page & cases for the moment)
 ;}
 
-#BDC_ProgramVersion = "0.07.5"
+#BDC_ProgramVersion = "0.08"
 #BDC_ProgramName = "BD Creator"
 Enumeration 
   
@@ -355,7 +368,7 @@ Enumeration
   #G_win_EditCase_ImageList
   #G_win_EditCase_BtnTextAdd
   #G_win_EditCase_BtnTextSet
-  #G_win_EditCase_BtnTextTyp ; bulle ellipse, text square
+  #G_win_EditCase_BtnTextTyp ; buble ellipse, text square
   #G_win_EditCase_BtnTextOver ; over the case
   #G_win_EditCase_ObjetType ; 0=Image, 1 = text.
   #G_win_EditCase_BtnImageAdd
@@ -380,12 +393,10 @@ Enumeration
   ;}
   ;}
   
-  ; Image
+  ;{ Image
   #Img_PageDrawing=0
   #Img_Export
-  
-  ; properties
-  #BD_properties_Interline=0
+  ;}
   
   ;{ gadget type (for procedure addgadgets()
   #Gad_spin=0
@@ -403,6 +414,9 @@ Enumeration
   ;}
   
   ;{ properties
+  ; properties
+  #BD_properties_Interline=0
+  ; properties
   #Propertie_X = 0
   #Propertie_Y
   #Propertie_W
@@ -413,6 +427,11 @@ Enumeration
   #Propertie_Light
   #Propertie_Scale
   #Propertie_Hide
+  ;}
+  
+  ;{ case typ
+  #CaseTyp_Img = 0
+  #CaseTyp_Text
   ;}
   
 EndEnumeration
@@ -598,6 +617,9 @@ EndMacro
 Declare Line_SetProperties(i,x,y,w,h)
 Declare Line_SetNBCase(nbcase=2)
 Declare Case_SetProperties(i,x,y,w,h)
+Declare UpdateMaincanvas_withimage()
+Declare Case_SetText(text$, update=0)
+
 
 Procedure.s Lang(text$)
   ProcedureReturn text$
@@ -1096,7 +1118,6 @@ Procedure Page_update(nbcase=1,updatelineproperties=1,updatenb=0,updateline=0)
     
   EndWith
   
-  
   ; set gadget parameters
   With project\page(PageId)
     If updatenb=1
@@ -1567,8 +1588,11 @@ Procedure Doc_Open()
   If Filename$ <> #Empty$
     
     If ReadFile(0, Filename$)
-      d$ = ","
       
+      d$ = ","
+      e$=";"
+      virg$ = "{{virgule}}"
+
       Doc_New()
       ClearGadgetItems(#G_win_Story_PageSelect)
       Modeautomatic = BDCOptions\Modeautomatic
@@ -1684,25 +1708,64 @@ Procedure Doc_Open()
               \NotuseMargeL = Val(StringField(line$, u, d$)) : u+1
               \NotuseMargeR = Val(StringField(line$, u, d$)) : u+1
             EndWith
-             
+            
+          Case "image"
+            Pageid = Val(StringField(line$, u, d$)) : u+1
+            Lineid = Val(StringField(line$, u, d$)) : u+1
+            Caseid = Val(StringField(line$, u, d$)) : u+1
+            ImageId = Val(StringField(line$, u, d$)) : u+1
+            If  imageId > ArraySize(project\page(pageID)\Line(lineId)\caze(Caseid)\image())
+              ReDim project\page(pageID)\Line(LineId)\caze(Caseid)\image(imageId)
+              project\page(pageID)\Line(LineId)\caze(Caseid)\nbImage = ArraySize(project\page(pageID)\Line(lineId)\caze(Caseid)\image())
+            EndIf
+            With project\page(pageID)\Line(Lineid)\caze(caseId)\image(imageId)
+              \x = Val(StringField(line$, u, d$)) : u+1
+              \y = Val(StringField(line$, u, d$)) : u+1
+              \w = Val(StringField(line$, u, d$)) : u+1
+              \h = Val(StringField(line$, u, d$)) : u+1
+              \typ = Val(StringField(line$, u, d$)) : u+1
+              \shapetyp = Val(StringField(line$, u, d$)) : u+1
+              \Depth = Val(StringField(line$, u, d$)) : u+1
+              \alpha = Val(StringField(line$, u, d$)) : u+1
+              \scale = Val(StringField(line$, u, d$)) : u+1
+              \file$ = ReplaceString(StringField(line$, u, d$),virg$, ",") : u+1
+              \text$ = ReplaceString(StringField(line$, u, d$),virg$, ",") : u+1
+              \fontName$ = StringField(line$, u, d$) : u+1
+              \fontSize = Val(StringField(line$, u, d$)) : u+1
+              \fontText$ = ReplaceString(StringField(line$, u, d$),virg$, ",") : u+1
+              ; then update the case
+              If \file$ <> #Empty$ Or \text$ <> #Empty$ Or \fontName$ <> #Empty$
+                If \typ = #CaseTyp_Img
+                  If FileSize(\file$) >0 
+                    project\page(pageID)\Line(Lineid)\caze(caseId)\image(ImageId)\img = LoadImage(#PB_Any, \file$)
+                  EndIf
+                ElseIf \typ =#CaseTyp_Text
+                  project\page(pageID)\Line(Lineid)\caze(caseId)\image(ImageId)\img = Case_SetText(\text$, 1)
+                EndIf
+                UpdateMaincanvas_withimage()
+              EndIf
+            EndWith
         EndSelect
         
       Wend
       CloseFile(0)
       
       ; update 
-      Page_update()
+      Pageid = 0
+      Lineid = 0
+      CaseID = 0
+      ImageId = 0
+      Page_Update()
       LineCase_GetProperties()
       BDCOptions\Modeautomatic = Modeautomatic
       SetGadgetState(#G_win_Story_ModeAutomatic,BDCOptions\Modeautomatic)
+      SetGadgetState(#G_win_Story_PageSelect,0)
     EndIf
     
   EndIf
   
 EndProcedure
 Procedure Doc_Save(filename$=#Empty$, saveas=0)
-  
-  virg$ = "{{virgule}}"
   
   If filename$ =#Empty$ Or saveas = 1
     filename$ = SaveFileRequester(lang("Save"), GetCurrentDirectory(),"BDC|*.bdc",0)
@@ -1730,7 +1793,9 @@ Procedure Doc_Save(filename$=#Empty$, saveas=0)
         If CreateFile(0, filename$)
           d$ =","
           e$=";"
+          virg$ = "{{virgule}}"
           
+
           WriteStringN(0, "// Created with "+#BDC_ProgramName+#BDC_ProgramVersion)
           
           ; info program
@@ -1781,12 +1846,21 @@ Procedure Doc_Save(filename$=#Empty$, saveas=0)
                 ; save image and text
                 For l=0 To ArraySize(project\page(i)\Line(j)\caze(k)\image())
                   With project\page(i)\Line(j)\caze(k)\image(l)
-                  txt$ = "image,"+Str(i)+d$+Str(j)+d$+Str(k)+d$+Str(l)+d$
-                  txt$ + Str(\x)+d$+Str(\y)+d$+Str(\w)+d$+Str(\h)+d$
-                  txt$ + Str(\typ)+d$+Str(\shapetyp)+d$+Str(\Depth)+d$+Str(\alpha)+d$+Str(\scale)+d$
-                  txt$ + ReplaceString(\file$, ",",virg$)+d$+ReplaceString(\text$,",",virg$)+d$
-                  txt$ + \fontName$+d$+Str(\fontSize)+d$+ReplaceString(\fontText$,",",virg$)+d$
-                  WriteStringN(0, txt$) 
+                    If \typ = #CaseTyp_Img
+                      \fontName$ = ""
+                      \fontSize = 0
+                    ElseIf \typ = #CaseTyp_Text
+                      \file$ = ""
+                      ; \text$ = ""
+                    EndIf
+                    If \file$ <> #Empty$ Or \text$ <> #Empty$ Or \fontName$ <> ""
+                      txt$ = "image,"+Str(i)+d$+Str(j)+d$+Str(k)+d$+Str(l)+d$
+                      txt$ + Str(\x)+d$+Str(\y)+d$+Str(\w)+d$+Str(\h)+d$
+                      txt$ + Str(\typ)+d$+Str(\shapetyp)+d$+Str(\Depth)+d$+Str(\alpha)+d$+Str(\scale)+d$
+                      txt$ + ReplaceString(\file$, ",",virg$)+d$+ReplaceString(\text$,",",virg$)+d$
+                      txt$ + \fontName$+d$+Str(\fontSize)+d$+ReplaceString(\fontText$,",",virg$)+d$
+                      WriteStringN(0, txt$) 
+                    EndIf
                   EndWith
                 Next 
                 
@@ -1972,7 +2046,6 @@ Procedure UpdateMaincanvas_withimage()
       EndIf
     EndIf
     
-    
     If StartDrawing(ImageOutput(\imageFinal\img))
       ; erase images
       DrawingMode(#PB_2DDrawing_AllChannels)
@@ -2089,7 +2162,7 @@ Procedure Window_EditCase_UpdateList()
   EndWith
 EndProcedure
 
-Procedure Case_Update(img,text$,file$,set=0,scale=100,alpha=255,typ=0,shapetyp=0)
+Procedure Case_Update(img,text$,file$,set=0,scale=100,alpha=255,typ=0,shapetyp=0,depth=0)
    Shared wec_fontname$, wec_fontsize
   
   With project\page(pageID)\Line(LineId)\caze(CaseID)
@@ -2103,70 +2176,86 @@ Procedure Case_Update(img,text$,file$,set=0,scale=100,alpha=255,typ=0,shapetyp=0
     Else
       n = imageId
       ; update gadget win_editcase
-      If CountGadgetItems(#G_win_EditCase_ImageList)<n Or  CountGadgetItems(#G_win_EditCase_ImageList)=0
-        AddGadgetItem(#G_win_EditCase_ImageList,-1, GetFilePart(file$,#PB_FileSystem_NoExtension))
-      Else
-        SetGadgetItemText(#G_win_EditCase_ImageList,n, GetFilePart(file$,#PB_FileSystem_NoExtension))
+      If IsGadget(#G_win_EditCase_ImageList)
+        If CountGadgetItems(#G_win_EditCase_ImageList)<n Or  CountGadgetItems(#G_win_EditCase_ImageList)=0
+          AddGadgetItem(#G_win_EditCase_ImageList,-1, GetFilePart(file$,#PB_FileSystem_NoExtension))
+        Else
+          SetGadgetItemText(#G_win_EditCase_ImageList,n, GetFilePart(file$,#PB_FileSystem_NoExtension))
+        EndIf
       EndIf
     EndIf
     
-    \image(n)\depth = 0
-    \image(n)\img = img
-    
-    \image(n)\typ = typ
-    \image(n)\shapetyp = shapetyp
-    
-    \image(n)\fontText$ = text$
-    \image(n)\fontName$ = wec_fontname$
-    \image(n)\fontSize = wec_fontsize
-    
-    \image(n)\text$ = text$
-    \image(n)\file$ = file$
-    \image(n)\w = ImageWidth(img)
-    \image(n)\h = ImageHeight(img)
-    \image(n)\scale = scale
-    \image(n)\alpha = alpha
-    
-    ImageId = n
-    
-    ; update canvas of window_editcase
-    UpdateCanvas_WinEditCase()
-    Window_EditCase_SetGadgetState()
-    
-    ; update main canvas
-    UpdateMainCanvas_WithImage()
-    
+    If IsGadget(#G_win_EditCase_ImageList)
+      \image(n)\depth = depth
+      \image(n)\img = img
+      
+      \image(n)\typ = typ
+      \image(n)\shapetyp = shapetyp
+      If typ = #CaseTyp_Text
+        \image(n)\fontText$ = text$
+        \image(n)\fontName$ = wec_fontname$
+        \image(n)\fontSize = wec_fontsize
+      EndIf
+      \image(n)\text$ = text$
+      \image(n)\file$ = file$
+      \image(n)\w = ImageWidth(img)
+      \image(n)\h = ImageHeight(img)
+      \image(n)\scale = scale
+      \image(n)\alpha = alpha
+      
+      ImageId = n
+      
+      ; update canvas of window_editcase
+      UpdateCanvas_WinEditCase()
+      Window_EditCase_SetGadgetState()
+      
+      ; update main canvas
+      UpdateMainCanvas_WithImage()
+    EndIf
+  
   EndWith
   
   UpdateCanvasMain()
 EndProcedure
 Procedure Case_SetText(text$, update=0)
   Shared wec_fontname$, wec_fontsize
+  
   If text$ <> #Empty$
     
     w = project\page(pageID)\Line(LineId)\caze(CaseID)\w
     h = project\page(pageID)\Line(LineId)\caze(CaseID)\h
     ; variable ot insert the text in the ellipse or rectangle
     d = 2
-    ; get the shape typ for phylacter (bulle) (0 = ellipse, 1= rectangle)
-    shapeTyp = GetGadgetState(#G_win_EditCase_BtnTextTyp)
-    
-    ; set font
-    If wec_fontSize = 0
-      wec_fontSize = 50
+    ; get the shape typ for phylacter (buble) (0 = ellipse, 1= rectangle)
+    If IsGadget(#G_win_EditCase_BtnTextTyp)
+      shapeTyp = GetGadgetState(#G_win_EditCase_BtnTextTyp)
+      ; set font
+      If wec_fontSize = 0
+        wec_fontSize = 50
+      EndIf
+      
+      font0 = FontRequester(wec_fontname$,wec_fontsize,#PB_FontRequester_Effects)
+      wec_fontname$ = SelectedFontName()
+      wec_fontSize = SelectedFontSize()
+    Else
+      With project\page(pageID)\Line(LineId)\caze(CaseID)\image(imageId)
+        shapeTyp = \shapetyp
+        wec_fontname$ = \fontName$
+        wec_fontSize = \fontSize
+      EndWith
+      update =3
     EndIf
-    
-    font0 = FontRequester(wec_fontname$,wec_fontsize,#PB_FontRequester_Effects)
-    wec_fontname$ = SelectedFontName()
-    wec_fontSize = SelectedFontSize()
+  
+    ; create font
     LoadFont(0,  wec_fontname$ ,wec_fontSize)
     s.d = (2500/project\Width) * wec_fontSize
     
     ; free image
-    If update =1
+    If update >=1
       FreeImage2(project\page(pageID)\Line(LineId)\caze(CaseID)\image(imageId)\img)
     EndIf
     
+    ; create image with text to calcule the text height
     img = CreateImage(#PB_Any, w,h,32,#PB_Image_Transparent)
     If StartVectorDrawing(ImageVectorOutput(img))
       If shapeTyp = 0
@@ -2182,10 +2271,12 @@ Procedure Case_SetText(text$, update=0)
       StopVectorDrawing()
     EndIf
     ;       w2 = w/d
+    
+    ; then create final image (bubble+text):)
     FreeImage(img)
     w1= w/d
     If shapeTyp = 0
-      h1=h
+      h1=h/2
     Else
       b=40
       h1 = h1+b
@@ -2195,18 +2286,27 @@ Procedure Case_SetText(text$, update=0)
     w=w1
     h=h1
     
-    img = CreateImage(#PB_Any, w,h1,32,#PB_Image_Transparent)
     
-    
+    h3 = 40
+    w3 = 20
+    img = CreateImage(#PB_Any,w,h1+h3,32,#PB_Image_Transparent)
     If StartVectorDrawing(ImageVectorOutput(img))
       If shapeTyp = 0
-        AddPathEllipse(w1/2,h1/(d*2),w1/d,h1/(d*2))
+        h0 = h1/d
+        AddPathEllipse(w1/2,h1/d,w1/d,h0)
       ElseIf shapeTyp = 1
-        AddPathBox(0,0,w1,h1)
+        h0 = h1-h3
+        AddPathBox(0,0,w1,h0)
       EndIf
       VectorSourceColor(RGBA(255,255,255,255))
       FillPath()
-      ; pointe de la bulle
+      
+      ; pointe de la buble
+      MovePathCursor(w1/2-w3,h1-10)
+      AddPathLine(w1/2,h1+h3)
+      AddPathLine(w1/2+w3,h1-10)
+      VectorSourceColor(RGBA(255,255,255,255))
+      FillPath()
       
       ; text
       VectorFont(FontID(0), 1 * s)
@@ -2220,37 +2320,60 @@ Procedure Case_SetText(text$, update=0)
       StopVectorDrawing()
     EndIf
     
-    If update
+    If update=1
       With project\page(pageID)\Line(LineId)\caze(CaseID)\image(imageId)
         scale = \scale
         alpha = \alpha
         shapeTyp = \shapetyp
       EndWith
       Case_Update(img, text$, file$,1,scale,alpha,1,shapeTyp)
+    ElseIf update = 2
+      Case_Update(img, text$, file$,1,100,255,1,shapeTyp)
     EndIf
+    
+
+    With project\page(pageID)\Line(LineId)\caze(CaseID)\image(imageId)
+      \typ = #CaseTyp_Text
+      \fontName$ = wec_fontname$
+      \fontSize = wec_fontsize
+      \fontText$ = text$
+      \text$ = text$
+    EndWith
+    
   EndIf
+  
   ProcedureReturn img
 EndProcedure
 Procedure Case_AddObject(typ=0, mode=0)
   Shared wec_vx, wec_vy, wec_zoom
   Shared wec_bankimage(), wec_bankimageid
-  
-  ; typ = 0 : add iamge
+  Shared wec_fontname$, wec_fontsize
+
+  ; typ = 0 : add image
   ; typ = 1 : add text
   ; typ = 2: delete image
   ; mode = 0 : open an image
   ; mode = 1 : load the image witht the filename$ in the wec_bankimage() array
    vs.d = wec_zoom * 0.01
 
-  If typ=1
+  If typ= #CaseTyp_Text
     ;{ Add text
     text$ = InputRequester(lang("text"), lang("Add a text"),"")
     If text$<> ""
-      img = Case_SetText(text$)
-      file$ = text$
+      With project\page(pageID)\Line(LineId)\caze(CaseID)
+        \nbImage+1
+        n= \nbImage
+        ReDim \image(n)
+      EndWith
+      imageId = n
+      ; update gadget win_editcase
+      AddGadgetItem(#G_win_EditCase_ImageList,n, GetFilePart(text$,#PB_FileSystem_NoExtension))
+      ; create text
+      img = Case_SetText(text$,2)
+      ; file$ = text$
     EndIf
     ;}
-  ElseIf typ = 0
+  ElseIf typ = #CaseTyp_Img
     ;{ add image
     If mode = 0
       file$= OpenFileRequester(lang("add an image"),BDCOptions\PathImage$,"image|*.png;*.jpg",0)
@@ -2262,6 +2385,9 @@ Procedure Case_AddObject(typ=0, mode=0)
       ;BDCOptions\PathImage$ = GetPathPart(file$)
       ;Debug BDCOptions\PathImage$
       img = LoadImage(#PB_Any, file$)
+      If img > 0 
+        Case_Update(img,text$,file$)
+      EndIf
     EndIf
     ;}
     
@@ -2288,10 +2414,10 @@ Procedure Case_AddObject(typ=0, mode=0)
     ;}
   EndIf
   
-  If img > 0 And typ<2
-    Case_Update(img,text$,file$)
-  EndIf
-
+  
+  
+  
+  
 EndProcedure
 Procedure Update_WinEdit_ImageProperties(propertie, n)
   With project\page(pageID)\Line(lineID)\caze(CaseId)
@@ -3035,9 +3161,9 @@ EndIf
 
 
 ; IDE Options = PureBasic 5.73 LTS (Windows - x86)
-; CursorPosition = 2546
-; FirstLine = 311
-; Folding = BgEAIBAAAAAAAAAAAAAAAAgu0BAAGAAAgW-AgAQAw4gJH8FBg-HAgegAAAAAAw
+; CursorPosition = 2330
+; FirstLine = 151
+; Folding = AATAgEADPAAAAAAgAQAAAAA73HAAIAgD5Pt+HAEA7P+33P8-PCA5-BAIfIAAAAAA9
 ; EnableXP
 ; Warnings = Display
 ; EnablePurifier
