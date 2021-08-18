@@ -20,14 +20,14 @@ Version 0.07
 
 ## Download ###
 
-### Animatoon 0.5.9.x (2021)
+### BDCreator 0.1.x (2021)
 
 # Windows : 
-You can download Animatoon from [the release directory][release directory (windows)] or from the [Github releases][gh-release] 
+You can download BDCreator from [the release directory][release directory (windows)] or from the [Github releases][gh-release] 
 
-[release directory (windows)]: https://github.com/blendman/animatoon/tree/main/_release/windows
+[release directory (windows)]: https://github.com/blendman/BDCreator/tree/main/_release/windows
 
-[gh-release]: https://github.com/blendman/animatoon/releases
+[gh-release]: https://github.com/blendman/BDCreator/releases
 
 
 # Linux, MacOS
