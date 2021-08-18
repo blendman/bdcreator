@@ -5,7 +5,7 @@ BDCreator is a free and open-source software developped by Blendman, in purebasi
 
 # Videos
 
-![BDCreator v0.06]https://www.youtube.com/watch?v=p5p6d7SwA50
+![BDCreator v0.06] https://www.youtube.com/watch?v=p5p6d7SwA50
  
 # ScreenShots
 
