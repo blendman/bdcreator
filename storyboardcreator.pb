@@ -86,15 +86,27 @@
 ; priorité :
 
 
-; 18.8.2021 0.08 (9)
+; 19.8.2021 0.09 (11)
 ; // New
-; - add bubble "arrow" (ellipse)
+; - WindowEditBubble : + gadgets : text width, size (height), choose font, position (x,y), string, cbbox to chose the arrow position, btn ok
+; // changes
+; - Window_EditCase : clic on "set btn"-> ope the WindowEditBubble to make the change.
+; - Case_SetText() : add bulle arrow (all directions)
+; - Case_SetText() : lots of change to use the new text parameters
+; - doc_save() : save font and text new parameters (width,x,y)
+; - doc_open() : save font and text new parameters (width,x,y)
+
+
+; 18.8.2021 0.08 (10)
+; // New
+; - add bubble "arrow" (ellipse, just bottom-middle for the moment)
 ; - Doc_open() : case image
 ; - Doc_open() : case text
 ; // changes
 ; - Doc_Save() : write image line only if image exists or is used
 ; - Doc_Save() : write tex line only if buble exists or is used
-; - Some change in Case_SetText() to create the buble when Doc_open()
+; - Some changes in Case_SetText() to create the buble when Doc_open()
+; - Some changes in Case_SetText() to create text and set all properties correctly at creation
 ; // fixes
 ; - bubble heigth wasn't ok
 
@@ -243,7 +255,7 @@
 ; - UpdateCanvasMain() : create the storyboard (page & cases for the moment)
 ;}
 
-#BDC_ProgramVersion = "0.08"
+#BDC_ProgramVersion = "0.09"
 #BDC_ProgramName = "BD Creator"
 Enumeration 
   
@@ -253,6 +265,7 @@ Enumeration
   #BDC_Win_Main = 0
   #BDC_Win_ProjectProperties
   #BDC_Win_EditCase
+  #BDC_Win_EditBubble
   ;}
   
   ;{ menu
@@ -288,7 +301,7 @@ Enumeration
   #BDC_Menu_PageDelete
   ;}
   
-  ;{ gadget
+  ;{ gadgets
   
   ;{ window main
   #G_win_Story_Canvas = 0
@@ -382,6 +395,19 @@ Enumeration
   #G_win_EditCase_ImageDepth
   ;}
   
+  ;{ window Edit Bubble
+  
+  #G_win_EditBuble_TextString
+  #G_win_EditBuble_TextWidth
+  #G_win_EditBuble_TextSize
+  #G_win_EditBuble_TextX
+  #G_win_EditBuble_TextY
+  #G_win_EditBuble_TextChooseFont
+  #G_win_EditBuble_BubleArrowShapeTyp
+  #G_win_EditBuble_BubleArrowPosition
+  #G_win_EditBuble_BtnOk
+  ;}
+  
   ;{ WIndow project properties
   #G_win_BDCprop_title
   #G_win_BDCprop_NbPage
@@ -432,6 +458,17 @@ Enumeration
   ;{ case typ
   #CaseTyp_Img = 0
   #CaseTyp_Text
+  ;} 
+  ;{ Bubble Arrow typ
+  ; should be same as gadget combobox : #G_win_EditBuble_BubleArrowPosition
+  #BubbleArrowTyp_BottomMiddle = 0
+  #BubbleArrowTyp_BottomLeft
+  #BubbleArrowTyp_BottomRight
+  #BubbleArrowTyp_TopMiddle
+  #BubbleArrowTyp_TopLeft
+  #BubbleArrowTyp_TopRight
+  #BubbleArrowTyp_CenterLeft
+  #BubbleArrowTyp_CenterRight
   ;}
   
 EndEnumeration
@@ -451,10 +488,17 @@ Structure sImg
   typ.a ; 0=image, 1=text
   shapetyp.a ; 0 = ellipse, 1= rectangle
   file$
+  ; text bubble
   text$
   fontText$
   fontName$
   fontSize.w
+  fontWidth.w
+  BubleArrowTyp.a
+  TextX.w
+  TextY.w
+  
+  ; other parameters
   depth.w
   alpha.a
   x.w
@@ -618,7 +662,8 @@ Declare Line_SetProperties(i,x,y,w,h)
 Declare Line_SetNBCase(nbcase=2)
 Declare Case_SetProperties(i,x,y,w,h)
 Declare UpdateMaincanvas_withimage()
-Declare Case_SetText(text$, update=0)
+Declare Case_SetText(text$, update=0, usefontrequester=1)
+Declare Window_EDitBubble()
 
 
 Procedure.s Lang(text$)
@@ -1733,6 +1778,11 @@ Procedure Doc_Open()
               \fontName$ = StringField(line$, u, d$) : u+1
               \fontSize = Val(StringField(line$, u, d$)) : u+1
               \fontText$ = ReplaceString(StringField(line$, u, d$),virg$, ",") : u+1
+              \fontWidth = Val(StringField(line$, u, d$)) : u+1
+              \TextX = Val(StringField(line$, u, d$)) : u+1
+              \TextY = Val(StringField(line$, u, d$)) : u+1
+              \BubleArrowTyp = Val(StringField(line$, u, d$)) : u+1
+              
               ; then update the case
               If \file$ <> #Empty$ Or \text$ <> #Empty$ Or \fontName$ <> #Empty$
                 If \typ = #CaseTyp_Img
@@ -1859,6 +1909,7 @@ Procedure Doc_Save(filename$=#Empty$, saveas=0)
                       txt$ + Str(\typ)+d$+Str(\shapetyp)+d$+Str(\Depth)+d$+Str(\alpha)+d$+Str(\scale)+d$
                       txt$ + ReplaceString(\file$, ",",virg$)+d$+ReplaceString(\text$,",",virg$)+d$
                       txt$ + \fontName$+d$+Str(\fontSize)+d$+ReplaceString(\fontText$,",",virg$)+d$
+                      txt$ + Str(\fontWidth)+d$+Str(\TextX)+d$+Str(\TextY)+d$+Str(\BubleArrowTyp)+d$
                       WriteStringN(0, txt$) 
                     EndIf
                   EndWith
@@ -2031,6 +2082,7 @@ EndProcedure
 ;}
 
 ;{ other window
+
 ; window Edit case
 Procedure UpdateMaincanvas_withimage()
   With project\page(pageID)\Line(LineId)\caze(CaseID)
@@ -2162,6 +2214,7 @@ Procedure Window_EditCase_UpdateList()
   EndWith
 EndProcedure
 
+
 Procedure Case_Update(img,text$,file$,set=0,scale=100,alpha=255,typ=0,shapetyp=0,depth=0)
    Shared wec_fontname$, wec_fontsize
   
@@ -2217,35 +2270,63 @@ Procedure Case_Update(img,text$,file$,set=0,scale=100,alpha=255,typ=0,shapetyp=0
   
   UpdateCanvasMain()
 EndProcedure
-Procedure Case_SetText(text$, update=0)
+Procedure Case_SetTextFont(update=0)
+  Shared wec_fontname$, wec_fontsize
+  
+  font0 = FontRequester(wec_fontname$,wec_fontsize,#PB_FontRequester_Effects)
+  wec_fontname$ = SelectedFontName()
+  wec_fontSize = SelectedFontSize()
+  If update=1
+    With project\page(pageID)\Line(LineId)\caze(CaseID)\image(imageId)
+      \fontName$= wec_fontname$
+      \fontSize = wec_fontSize
+    EndWith
+    SetGadgetText(#G_win_EditBuble_TextChooseFont,wec_fontname$)
+    
+  EndIf
+  ProcedureReturn Font0
+EndProcedure
+Procedure Case_SetText(text$, update=0, usefontrequester=1)
   Shared wec_fontname$, wec_fontsize
   
   If text$ <> #Empty$
     
     w = project\page(pageID)\Line(LineId)\caze(CaseID)\w
     h = project\page(pageID)\Line(LineId)\caze(CaseID)\h
-    ; variable ot insert the text in the ellipse or rectangle
+    ; variable to insert the text in the ellipse or rectangle
     d = 2
+    b=40
+    
     ; get the shape typ for phylacter (buble) (0 = ellipse, 1= rectangle)
-    If IsGadget(#G_win_EditCase_BtnTextTyp)
+    If IsGadget(#G_win_EditCase_BtnTextTyp) And usefontrequester=1
       shapeTyp = GetGadgetState(#G_win_EditCase_BtnTextTyp)
       ; set font
       If wec_fontSize = 0
         wec_fontSize = 50
       EndIf
-      
-      font0 = FontRequester(wec_fontname$,wec_fontsize,#PB_FontRequester_Effects)
-      wec_fontname$ = SelectedFontName()
-      wec_fontSize = SelectedFontSize()
+      font0 = Case_SetTextFont()
+      w5 = w/d
+      w6 = w/d
+      arrowtyp = #BubbleArrowTyp_BottomMiddle
+      x=0
+      y=0
     Else
+     
       With project\page(pageID)\Line(LineId)\caze(CaseID)\image(imageId)
         shapeTyp = \shapetyp
         wec_fontname$ = \fontName$
         wec_fontSize = \fontSize
+        w5 = \fontWidth
+        w6 = \w -b*2
+        arrowtyp = \BubleArrowTyp
+        x = \TextX
+        y = \Texty
       EndWith
-      update =3
+      update =1
     EndIf
-  
+    
+    ; Debug w5
+    
     ; create font
     LoadFont(0,  wec_fontname$ ,wec_fontSize)
     s.d = (2500/project\Width) * wec_fontSize
@@ -2264,9 +2345,9 @@ Procedure Case_SetText(text$, update=0)
         VectorFont(FontID(0), 1*s)
       EndIf
       MovePathCursor(0, 0)
-      DrawVectorParagraph(text$,w/d,h,#PB_VectorParagraph_Center)
+      DrawVectorParagraph(text$,w5,h,#PB_VectorParagraph_Center)
       w1 = VectorTextWidth(text$,#PB_VectorText_Visible)
-      h1 = VectorParagraphHeight(text$,w/d,h)
+      h1 = VectorParagraphHeight(text$,w5,h)
       ;Debug Str(h1)+"/"+Str(h)
       StopVectorDrawing()
     EndIf
@@ -2274,49 +2355,97 @@ Procedure Case_SetText(text$, update=0)
     
     ; then create final image (bubble+text):)
     FreeImage(img)
-    w1= w/d
+    
+    w1= w6
+    h3 = 40
     If shapeTyp = 0
-      h1=h/2
+      h1=h/2 +b*2
+      w1+b*2
     Else
-      b=40
-      h1 = h1+b
+      h1 = h1+b*2
+      w1+b*2
     EndIf
     ; Debug Str(h1)+"/"+Str(h)
     file$ = text$
-    w=w1
+    w=w6+b*2
     h=h1
     
     
-    h3 = 40
-    w3 = 20
-    img = CreateImage(#PB_Any,w,h1+h3,32,#PB_Image_Transparent)
+   
+    w3 = 60
+    img = CreateImage(#PB_Any,w,h1,32,#PB_Image_Transparent)
     If StartVectorDrawing(ImageVectorOutput(img))
+      
+      ; for the arrow of the buble
+       u = 0
+      xa1 = w1/2-w3
+      ya1 = h1/2
+      xa3 = w1/2+w3
+      ya3 = h1/2
+      Select arrowtyp
+        Case #BubbleArrowTyp_BottomMiddle
+          xa2 = w1/2
+          ya2 = h1
+        Case #BubbleArrowTyp_BottomLeft 
+          xa2 = 0
+          ya2 = h1
+        Case #BubbleArrowTyp_BottomRight
+          xa2 = w1
+          ya2 = h1
+        Case #BubbleArrowTyp_CenterRight
+          xa2 = w1
+          ya2 = h1/2
+          ya1 = h1/2-w3
+          ya3 = h1/2+w3
+       Case #BubbleArrowTyp_CenterLeft
+          xa2 = 0
+          ya2 = h1/2
+          ya1 = h1/2-w3
+          ya3 = h1/2+w3
+        Case #BubbleArrowTyp_TopLeft
+          xa2 = 0
+          ya2 = 0
+        Case #BubbleArrowTyp_TopMiddle
+          xa2 = w1/2
+          ya2 = 0
+        Case #BubbleArrowTyp_TopRight
+          xa2 = w1
+          ya2 = 0
+      EndSelect
+      
+      
+      ; Create the buble
       If shapeTyp = 0
-        h0 = h1/d
-        AddPathEllipse(w1/2,h1/d,w1/d,h0)
+        h0 = h1/d-h3*2
+        w0 = w1-h3*2
+        AddPathEllipse(w1/2,h1/d,w0/d,h0)
       ElseIf shapeTyp = 1
-        h0 = h1-h3
-        AddPathBox(0,0,w1,h0)
+        h0 = h1-h3*2
+        w0 = w1-h3*2
+        AddPathBox(h3,h3,w1,h0)
       EndIf
       VectorSourceColor(RGBA(255,255,255,255))
       FillPath()
       
       ; pointe de la buble
-      MovePathCursor(w1/2-w3,h1-10)
-      AddPathLine(w1/2,h1+h3)
-      AddPathLine(w1/2+w3,h1-10)
+     
+      MovePathCursor(xa1+u,ya1+u)
+      AddPathLine(xa2+u,ya2+u)
+      AddPathLine(xa3+u,ya3+u)
       VectorSourceColor(RGBA(255,255,255,255))
       FillPath()
       
       ; text
       VectorFont(FontID(0), 1 * s)
       VectorSourceColor(RGBA(0,0,0,255))
+;       x+h3
+;       y+h3
       If shapeTyp = 0
-        MovePathCursor(0,h1*0.16)
+        MovePathCursor(x,Y+h1*0.16)
       ElseIf shapeTyp = 1
-        MovePathCursor(0,(b/4)*s)
+        MovePathCursor(x,y+(b/4)*s)
       EndIf
-      DrawVectorParagraph(text$,w1,h,#PB_VectorParagraph_Center)
+      DrawVectorParagraph(text$,w5,h,#PB_VectorParagraph_Center)
       StopVectorDrawing()
     EndIf
     
@@ -2326,9 +2455,9 @@ Procedure Case_SetText(text$, update=0)
         alpha = \alpha
         shapeTyp = \shapetyp
       EndWith
-      Case_Update(img, text$, file$,1,scale,alpha,1,shapeTyp)
+      Case_Update(img,text$,file$,1,scale,alpha,1,shapeTyp)
     ElseIf update = 2
-      Case_Update(img, text$, file$,1,100,255,1,shapeTyp)
+      Case_Update(img,text$,file$,1,100,255,1,shapeTyp)
     EndIf
     
 
@@ -2338,6 +2467,8 @@ Procedure Case_SetText(text$, update=0)
       \fontSize = wec_fontsize
       \fontText$ = text$
       \text$ = text$
+      \fontWidth = w5
+      \img = img
     EndWith
     
   EndIf
@@ -2364,12 +2495,16 @@ Procedure Case_AddObject(typ=0, mode=0)
         \nbImage+1
         n= \nbImage
         ReDim \image(n)
+        \image(n)\alpha = 255
+        \image(n)\scale = 100
+        \image(n)\typ = #CaseTyp_Text
       EndWith
       imageId = n
       ; update gadget win_editcase
       AddGadgetItem(#G_win_EditCase_ImageList,n, GetFilePart(text$,#PB_FileSystem_NoExtension))
       ; create text
-      img = Case_SetText(text$,2)
+      Case_SetText(text$,1)
+      Window_EDitBubble()
       ; file$ = text$
     EndIf
     ;}
@@ -2414,11 +2549,50 @@ Procedure Case_AddObject(typ=0, mode=0)
     ;}
   EndIf
   
-  
-  
-  
-  
 EndProcedure
+
+Procedure WinBuble_UpdateGadgets()
+   With Project\page(pageid)\Line(LineId)\caze(CaseID)\image(ImageID) 
+     SetGadgetText(#G_win_EditBuble_TextString, \fontText$)
+     SetGadgetState(#G_win_EditBuble_TextWidth, \fontWidth)
+     SetGadgetState(#G_win_EditBuble_TextSize, \fontSize)
+     SetGadgetState(#G_win_EditBuble_TextX, \TextX)
+     SetGadgetState(#G_win_EditBuble_TextY, \TextY)
+     SetGadgetText(#G_win_EditBuble_TextChooseFont, \fontName$)
+     SetGadgetState(#G_win_EditBuble_BubleArrowPosition, \BubleArrowTyp)
+   EndWith
+   
+EndProcedure
+Procedure Window_EDitBubble()
+  
+  winw = 400
+  winH = 500 ; WindowHeight(#BDC_Win_Main)
+  If OpenWindow(#BDC_Win_EditBubble, 0, 0, winW, winH, Lang("Edit Bubble"), #PB_Window_SystemMenu | #PB_Window_ScreenCentered|#PB_Window_SizeGadget, 
+                WindowID(#BDC_Win_EditCase))
+    WindowBounds(#BDC_Win_EditBubble,400,500, WinW,winH+100)
+    ; add gadgets
+    x=5 : y=5 : wp=250 : h=200 : h1=30 : w1=wp-110 : h0=winh-y*2 : a=2
+    With Project\page(pageid)\Line(LineId)\caze(CaseID)\image(ImageID) 
+      AddGadget(#G_win_EditBuble_TextString, #Gad_String,x,y,w1,h1,\fontText$,0,0,lang("Change the strings of the text"),-65257,lang("Text")) : y+h1+a
+      AddGadget(#G_win_EditBuble_TextWidth, #Gad_spin,x,y,w1,h1,"",0,10000,lang("Change the width of the text"),\fontWidth,lang("Width")) : y+h1+a
+      AddGadget(#G_win_EditBuble_TextSize, #Gad_spin,x,y,w1,h1,"",0,10000,lang("Change the Size (height) of the text"),\fontSize,lang("Size")) : y+h1+a
+      AddGadget(#G_win_EditBuble_TextX, #Gad_spin,x,y,w1,h1,"",-100000,100000,lang("Change the X position of the text"),\TextX,lang("X")) : y+h1+a
+      AddGadget(#G_win_EditBuble_TextY, #Gad_spin,x,y,w1,h1,"",-100000,100000,lang("Change the Y position of the text"),\TextY,lang("Y")) : y+h1+a
+      AddGadget(#G_win_EditBuble_TextChooseFont, #Gad_btn,x,y,w1,h1,\fontName$,0,0,lang("Change the font of the text"),0,lang("Font")) : y+h1+a
+      
+      AddGadget(#G_win_EditBuble_BubleArrowPosition, #Gad_Cbbox,x,y,w1,h1,"",0,0,lang("Set the arrow position for the bubble"),0,lang("Arrow")) : y+h1+30
+      ; should be the same as Bubble Arrow typ 
+      Gadget_AddItems(#G_win_EditBuble_BubleArrowPosition,"BottomMidlle,BottomLeft,BottomRight,TopMiddle,TopLeft,TopRight,CenterLeft,CenterRight,",\BubleArrowTyp) 
+      
+      AddGadget(#G_win_EditBuble_BtnOk, #Gad_btn,x,y,w1,h1,lang("Ok"),0,0,lang("Set the changes For the text"))
+
+      ;     #G_win_EditBuble_BubleArrowShapeTyp
+    EndWith
+  
+  EndIf
+
+EndProcedure
+
 Procedure Update_WinEdit_ImageProperties(propertie, n)
   With project\page(pageID)\Line(lineID)\caze(CaseId)
     Select propertie
@@ -2491,6 +2665,10 @@ Procedure Event_WinEditcaseCanvas()
             If x>=wec_vx+\image(k)\x And x<=wec_vx+\image(k)\x+(s * \image(k)\w) And y>=wec_vy+\image(k)\y And y<=wec_vy+\image(k)\y+(s * \image(k)\h)
               imageId = k
               Window_EditCase_SetGadgetState()
+              If IsWindow(#BDC_Win_EditBubble)
+                WinBuble_UpdateGadgets()
+              EndIf
+              
             EndIf
           Next
           If oldImageId <> ImageID
@@ -2971,6 +3149,30 @@ If OpenWindow(#BDC_Win_Main, 0, 0, winW, winH, "BD creator (Storyboard & comics 
                 
             EndSelect
             
+          Case #BDC_Win_EditBubble
+            If Project\page(pageid)\Line(LineId)\caze(CaseID)\nbImage>=0
+              With Project\page(pageid)\Line(LineId)\caze(CaseID)\image(ImageID)
+                Select EventGadget
+                  Case #G_win_EditBuble_TextSize,#G_win_EditBuble_TextY, #G_win_EditBuble_TextX, #G_win_EditBuble_TextString,#G_win_EditBuble_TextWidth,#G_win_EditBuble_BubleArrowPosition
+                    \fontSize = GetGadgetState(#G_win_EditBuble_TextSize)
+                    \fontText$ = GetGadgetText(#G_win_EditBuble_TextString)
+                    \fontWidth = GetGadgetState(#G_win_EditBuble_TextWidth)
+                    \TextX = GetGadgetState(#G_win_EditBuble_TextX)
+                    \TextY = GetGadgetState(#G_win_EditBuble_TextY)
+                    \BubleArrowTyp = GetGadgetState(#G_win_EditBuble_BubleArrowPosition)
+                    Case_SetText(\fontText$, 0, 0)
+                    
+                  Case #G_win_EditBuble_TextChooseFont
+                    Case_SetTextFont(1)
+                    Case_SetText(\fontText$, 0, 0)
+                    
+                  Case #G_win_EditBuble_BtnOk
+                    Case_SetText(\fontText$, 0, 0)
+                    
+                EndSelect
+              EndWith
+            EndIf
+          
           Case #BDC_Win_EditCase
             Select EventGadget
                 
@@ -2987,8 +3189,9 @@ If OpenWindow(#BDC_Win_Main, 0, 0, winW, winH, "BD creator (Storyboard & comics 
               Case #G_win_EditCase_BtnTextSet
                 ; Debug Project\page(pageid)\Line(LineId)\caze(CaseID)\image(ImageID)\fontText$
                 If Project\page(pageid)\Line(LineId)\caze(CaseID)\nbImage>=0
-                  text$ = InputRequester(lang("text"), lang("Add a text"),Project\page(pageid)\Line(LineId)\caze(CaseID)\image(ImageID)\fontText$)
-                  Case_SetText(text$, 1)
+                  ; text$ = InputRequester(lang("text"), lang("Add a text"),Project\page(pageid)\Line(LineId)\caze(CaseID)\image(ImageID)\fontText$)
+                  Window_EDitBubble()
+                  ; Case_SetText(text$, 1)
                 Else
                   Case_AddObject(1)
                 EndIf
@@ -3161,9 +3364,11 @@ EndIf
 
 
 ; IDE Options = PureBasic 5.73 LTS (Windows - x86)
-; CursorPosition = 2330
-; FirstLine = 151
-; Folding = AATAgEADPAAAAAAgAQAAAAA73HAAIAgD5Pt+HAEA7P+33P8-PCA5-BAIfIAAAAAA9
+; CursorPosition = 257
+; FirstLine = 229
+; Folding = RCOAASAM9AAAAAAACABAAAAobfAAgAAOg-17fAQAo-5bzv0ffOivB9-BAI-ZhDAwHAg
 ; EnableXP
+; Executable = _release\bdcreator.exe
+; DisableDebugger
 ; Warnings = Display
 ; EnablePurifier
