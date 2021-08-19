@@ -14,7 +14,8 @@ BDCreator is developped in [Purebasic][1] and has been created by Blendman (Sinc
  
 ## ScreenShots
 
-Version 0.07
+[![BDCreator Video v0.09](https://raw.githubusercontent.com/blendman/bdcreator/master/screenshots/bdcreator0.09_1.jpg)
+[![BDCreator Video v0.09](https://raw.githubusercontent.com/blendman/bdcreator/master/screenshots/bdcreator0.09.jpg)
 [![BDCreator Video v0.07](https://raw.githubusercontent.com/blendman/bdcreator/master/screenshots/bdcreator0.07_editcase.jpg)
 
 
