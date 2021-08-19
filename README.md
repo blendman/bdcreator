@@ -25,7 +25,7 @@ Version 0.07
 # Windows : 
 You can download BDCreator from [the release directory][release directory (windows)] or from the [Github releases][gh-release] 
 
-[release directory (windows)]: https://github.com/blendman/BDCreator/tree/main/_release/windows
+[release directory (windows)]: https://github.com/blendman/BDCreator/tree/main/_release/
 
 [gh-release]: https://github.com/blendman/BDCreator/releases
 
