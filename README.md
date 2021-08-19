@@ -9,14 +9,14 @@ BDCreator is developped in [Purebasic][1] and has been created by Blendman (Sinc
 
 ## Videos
 
-![BDCreator v0.06] https://www.youtube.com/watch?v=p5p6d7SwA50
+[![BDCreator v0.06] https://www.youtube.com/watch?v=p5p6d7SwA50
  
  
 ## ScreenShots
 
-[![BDCreator Video v0.09](https://raw.githubusercontent.com/blendman/bdcreator/master/screenshots/bdcreator0.09_1.jpg)
-[![BDCreator Video v0.09](https://raw.githubusercontent.com/blendman/bdcreator/master/screenshots/bdcreator0.09.jpg)
-[![BDCreator Video v0.07](https://raw.githubusercontent.com/blendman/bdcreator/master/screenshots/bdcreator0.07_editcase.jpg)
+![BDCreator Video v0.09](https://raw.githubusercontent.com/blendman/bdcreator/master/screenshots/bdcreator0.09_1.jpg)
+![BDCreator Video v0.09](https://raw.githubusercontent.com/blendman/bdcreator/master/screenshots/bdcreator0.09.jpg)
+![BDCreator Video v0.07](https://raw.githubusercontent.com/blendman/bdcreator/master/screenshots/bdcreator0.07_editcase.jpg)
 
 
 ## Download ###
