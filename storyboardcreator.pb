@@ -10,7 +10,7 @@
 ; ok 0.04 - definir : case x,y
 ; ok - Bugfixe : sélectionner la ligne
 ; V 0.04 :
-; - Voir le Numéro de page
+; ok 0.10 - Voir le Numéro de page
 ; ok 0.04 - voir et Changer le depth des cases
 ; ok 0.03 - Sélectionner une Case
 ; V 0.05
@@ -38,24 +38,15 @@
 ; V 0.12
 ; ok 0.03 - Menu export image (jpg ou PNG, calque écrasé)
 ; V 0.13
-; ?? - Changer le zoom de la Case (type de plan) et « pan ».
 ; - Menu export (image PNG de chaque page) avec taille d’export..; 
 ; v 0.14 :
 ; ok 0.03 - pouvoir dessiner sur la page
 ; v 0.15 :
 ; ok 0.04 - export page as template
 
+; non :
+; ?? - Changer le zoom de la Case (type de plan) et « pan ».
 
-; Priority :
-; - add a menu file : preference
-; - page : delete, move < >
-; ?? - add a "edition mode" :  page, graphics, text
-; ??? - case : set zoom
-; - export in png layers.
-; - show the space (between line and case)
-; - miror image
-; - image repeated/seamless (for bg)
-; - image saturation, brightness, contrast
 
 ; ok :
 ; - add character
@@ -75,6 +66,7 @@
 ; - add fleche de buble system
 ; - load : case image
 ; - load : case text
+; - wec : miror image
 
 ; bugs : 
 ; ok - select line is bugged
@@ -83,18 +75,48 @@
 ; ok - buble : taille in H not ok
  ; - mode normal : si on ajoute une case, il faudrait qu'elle soit créé à droite, après la dernière case et avec la largeur disponible (pas w=0 et x=0)
 
-; priorité :
+; Priority :
+; - add a menu file : preference
+; - page : delete, move < >
+; ?? - add a "edition mode" :  page, graphics, text
+; ??? - case : set zoom
+; - export in png layers.
+; - show the space (between line and case)
+; - image repeated/seamless (for bg)
+; - image saturation, brightness, contrast
+; - wec : rotation image
+; wip - page add the number of page gadget (numero de page)
+; - when change W/h/X:Y of case, the others cases should be changed automatically
 
+; 21.8.2021 0.10 (12)
+; // New
+; - window main : gadgets : stroke by case (alpha, size, set)
+; - wec : gadget default scale for image
+; - wec : gadget image miror
+; - bdcoptions : add bankcaseScale, depth (to set scale, depth by default when add new image to case)
+; - structure sImg : add miror, rotation
+; - doc_save() : add case\strokealpha,size,set
+; - doc_save() : add image\miror, rotation, brightness
+; - doc_open() : add image\miror, rotation, brightness
+; - #properties : miror, rotation, brightness
+; // changes
+; - page\case : stroke alpha/size is by case
+; - UpdateCanvasMain() : changes to use stroke alpha, size from case if set >=2
+; - projet\strokesize : now we can have a strokesize= 0
 
+;{ 
 ; 19.8.2021 0.09 (11)
 ; // New
+; - WinBuble_UpdateGadgets() (to update the buble when we select a buble)
 ; - WindowEditBubble : + gadgets : text width, size (height), choose font, position (x,y), string, cbbox to chose the arrow position, btn ok
 ; // changes
 ; - Window_EditCase : clic on "set btn"-> ope the WindowEditBubble to make the change.
 ; - Case_SetText() : add bulle arrow (all directions)
 ; - Case_SetText() : lots of change to use the new text parameters
-; - doc_save() : save font and text new parameters (width,x,y)
-; - doc_open() : save font and text new parameters (width,x,y)
+; - doc_save() : save font and text new parameters (width,x,y,bublearrow)
+; - doc_open() : save font and text new parameters (width,x,y,bublearrow)
+; // fixes
+; - after doc_open() then open window_editcase, the gadget item text isn't correct with the object text (buble)
 
 
 ; 18.8.2021 0.08 (10)
@@ -254,8 +276,10 @@
 ; - Createproject() : with project parameters (nb page, title, marge, space between line and case...)
 ; - UpdateCanvasMain() : create the storyboard (page & cases for the moment)
 ;}
+;}
 
-#BDC_ProgramVersion = "0.09"
+
+#BDC_ProgramVersion = "0.10"
 #BDC_ProgramName = "BD Creator"
 Enumeration 
   
@@ -270,13 +294,18 @@ Enumeration
   
   ;{ menu
   #JSONFile = 0
+  
+  ; The menu for the windows
   #BDC_Menu_Main=0
-  ; menu items main window
+  #BDC_Menu_Wec
+  
+  ;{ menu items main window
   #BDC_Menu_NewDoc=0
   #BDC_Menu_OpenDoc
   #BDC_Menu_SaveDoc
   #BDC_Menu_Projectproperties
   #BDC_Menu_ExportAsImage
+  #BDC_Menu_ExportAllPagesAsImage
   #BDC_Menu_ExportAsLayer
   #BDC_Menu_ExportPageAsTemplate
   #BDC_Menu_Quit
@@ -301,6 +330,20 @@ Enumeration
   #BDC_Menu_PageDelete
   ;}
   
+  ;{ other windows
+  
+  ;{ window editcase
+  #BDC_Menu_WEC_CaseCopy
+  #BDC_Menu_WEC_CasePaste
+  #BDC_Menu_WEC_CaseNext
+  #BDC_Menu_WEC_CasePrevious
+  #BDC_Menu_WEC_ObjectDelete
+  ;}
+  
+  ;}
+  
+  ;}
+  
   ;{ gadgets
   
   ;{ window main
@@ -315,6 +358,7 @@ Enumeration
   #G_win_Story_StrokeSize
   #G_win_Story_StrokeColor
   #G_win_Story_StrokeAlpha
+  ; #G_win_Story_StrokeForAllcases
   ; page
   #G_win_Story_PageTitle
   #G_win_Story_PageNumber
@@ -331,9 +375,11 @@ Enumeration
   #G_win_Story_MargeLeft
   #G_win_Story_MargeRight
   
-  ; By page
+  ; By page (line, case)
   #G_win_Story_PageX
   #G_win_Story_PageY
+  #G_win_Story_CaseAutomaticCalcul
+  #G_win_Story_PageAddNumber
   
   #G_win_Story_LineID
   #G_win_Story_LineY
@@ -349,6 +395,11 @@ Enumeration
   #G_win_Story_CaseUseMargeR
   #G_win_Story_CaseUseMargeTop
   #G_win_Story_CaseUseMargeBottom
+  
+  #G_win_Story_CaseStrokeSize
+  #G_win_Story_CaseStrokeColor
+  #G_win_Story_CaseStrokeAlpha
+  #G_win_Story_CaseStrokeSet ; project =0, page =1, line= 2, case=3
   
   #G_win_Story_BankImage
   #G_win_Story_BankFolder
@@ -366,15 +417,16 @@ Enumeration
   #G_win_Story_Last ; last gadget for the main window
                     ;}
   
-  ; other window
+  ;{ other windows
   ;{ window Edit case
-  ; panel bank
+  ; Panel bank
   #G_win_EditCase_BankFolder
   #G_win_EditCase_BankSubFolder
   #G_win_EditCase_BankSA ; scorllarea
   #G_win_EditCase_Bankcanvas
   #G_win_EditCase_BankAdd
-  ; panel case
+  #G_win_EditCase_BankScale
+  ; Panel case
   #G_win_EditCase_Canvas
   #G_win_EditCase_Panel
   #G_win_EditCase_SA
@@ -390,6 +442,12 @@ Enumeration
   #G_win_EditCase_ImageY
   #G_win_EditCase_ImageW
   #G_win_EditCase_ImageH
+  #G_win_EditCase_ImageMiror
+  #G_win_EditCase_ImageRotation
+  #G_win_EditCase_ImageRepeatX
+  #G_win_EditCase_ImageRepeatY
+  #G_win_EditCase_ImageBrightness
+  #G_win_EditCase_ImageContrast
   #G_win_EditCase_ImageScale
   #G_win_EditCase_ImageAlpha
   #G_win_EditCase_ImageDepth
@@ -417,6 +475,8 @@ Enumeration
   #G_win_BDCprop_Wpixel
   #G_win_BDCprop_Hpixel
   ;}
+  ;}
+  
   ;}
   
   ;{ Image
@@ -453,12 +513,17 @@ Enumeration
   #Propertie_Light
   #Propertie_Scale
   #Propertie_Hide
+  #propertie_Brightness
+  #propertie_Rotation
+  #propertie_Miror
+  #propertie_Contrast
   ;}
   
   ;{ case typ
   #CaseTyp_Img = 0
   #CaseTyp_Text
   ;} 
+  
   ;{ Bubble Arrow typ
   ; should be same as gadget combobox : #G_win_EditBuble_BubleArrowPosition
   #BubbleArrowTyp_BottomMiddle = 0
@@ -485,6 +550,7 @@ EndStructure
 
 Structure sImg
   img.i
+  imgtemp.i
   typ.a ; 0=image, 1=text
   shapetyp.a ; 0 = ellipse, 1= rectangle
   file$
@@ -506,6 +572,9 @@ Structure sImg
   w.w
   h.w
   scale.d
+  miror.a
+  rotation.w
+  brightness.a
 EndStructure
 Dim wec_bankimage.sImg(0)
 
@@ -529,6 +598,10 @@ Structure sCase
   NotuseMargeL.a
   NotuseMargeR.a
   NotuseMargeBottom.a
+  StrokeSize.a
+  StrokeColor.i
+  StrokeAlpha.a
+  StrokeSet.a
 EndStructure
 Structure sLine
   Array caze.sCase(0)
@@ -611,6 +684,11 @@ Structure sBDCOptions
   PathImage$
   ; default projet
   Project.sProject
+  firstopening.a
+  ; options Window Editcase
+  CaseBankScale.w
+  CaseBankDepth.w
+  
 EndStructure
 Global BDCOptions.sBDCOptions
 
@@ -656,6 +734,11 @@ Macro InsertArrayElement(ar, el)
     
 EndMacro
 ;}
+Macro CheckZero(a,b)
+  If a<=0
+    a=b
+  EndIf
+EndMacro
 ;}
 ;{ procedures
 Declare Line_SetProperties(i,x,y,w,h)
@@ -663,7 +746,7 @@ Declare Line_SetNBCase(nbcase=2)
 Declare Case_SetProperties(i,x,y,w,h)
 Declare UpdateMaincanvas_withimage()
 Declare Case_SetText(text$, update=0, usefontrequester=1)
-Declare Window_EDitBubble()
+Declare Window_EditBubble()
 
 
 Procedure.s Lang(text$)
@@ -792,7 +875,7 @@ Procedure UpdateCanvasMain(gad=#G_win_Story_Canvas,outputid=0)
           
           Canvas_DrawImage(i,j,x1,y1)
           
-          ; drawing
+          ; draw the stroke drawings
           For k=0 To ArraySize(Stroke())
             MovePathCursor(stroke(k)\dot(0)\x+ vx,stroke(k)\dot(0)\y+ vy)
             For f=1 To ArraySize(stroke(k)\dot())
@@ -806,12 +889,20 @@ Procedure UpdateCanvasMain(gad=#G_win_Story_Canvas,outputid=0)
           Next
           
           ; black stroke for each case
-          MovePathCursor(0,0)
-          AddPathBox(x1+\Line(i)\caze(j)\x , y1+\Line(i)\caze(j)\y, \Line(i)\caze(j)\w, \Line(i)\caze(j)\h )
+          st_a = project\StrokeAlpha
+          st_s = project\StrokeSize
           c = project\StrokeColor
-          VectorSourceColor(RGBA(Red(c), Green(c), Blue(c), project\StrokeAlpha))
-          StrokePath(project\StrokeSize * Project\Width/2500,#PB_Path_RoundEnd|#PB_Path_RoundCorner   )
-          
+          If \Line(i)\caze(j)\StrokeSet >=2
+            st_a = \Line(i)\caze(j)\StrokeAlpha
+            st_s = \Line(i)\caze(j)\StrokeSize
+          EndIf
+          If st_a >0 And st_s >0
+            MovePathCursor(0,0)
+            AddPathBox(x1+\Line(i)\caze(j)\x , y1+\Line(i)\caze(j)\y, \Line(i)\caze(j)\w, \Line(i)\caze(j)\h )
+            VectorSourceColor(RGBA(Red(c), Green(c), Blue(c), st_a))
+            StrokePath((st_s * Project\Width)/2500,#PB_Path_RoundEnd|#PB_Path_RoundCorner   )
+          EndIf
+        
           ; selection of the case
           If BDCOptions\showSelected 
             If i = lineID And j = caseid
@@ -841,12 +932,23 @@ Procedure UpdateCanvasMain(gad=#G_win_Story_Canvas,outputid=0)
   
 EndProcedure
 Procedure LineCase_GetProperties()
+  i = CaseID
   With project\page(PageId)\Line(LineID)
     SetGadgetState(#G_win_Story_CaseDepth, \caze(CaseId)\Depth)
     SetGadgetState(#G_win_Story_CaseX, \caze(CaseId)\x)
     SetGadgetState(#G_win_Story_CaseY, \caze(CaseId)\y)
     SetGadgetState(#G_win_Story_CaseW, \caze(CaseId)\w)
     SetGadgetState(#G_win_Story_CaseH, \caze(CaseId)\h)
+    SetGadgetState(#G_win_Story_CaseID, CaseId)
+    
+    ;If \caze(i)\StrokeSet <2
+      ;SetGadgetState(#G_win_Story_CaseStrokeAlpha, project\StrokeAlpha)
+      ;SetGadgetState(#G_win_Story_CaseStrokeSize, project\StrokeSize)
+    ;ElseIf \caze(i)\StrokeSet >=2
+      SetGadgetState(#G_win_Story_CaseStrokeAlpha, \caze(CaseId)\StrokeAlpha)
+      SetGadgetState(#G_win_Story_CaseStrokeSize, \caze(CaseId)\StrokeSize)
+    ;EndIf
+    SetGadgetState(#G_win_Story_CaseStrokeSet, \caze(CaseId)\StrokeSet)
     SetGadgetState(#G_win_Story_LineY, \y)
     SetGadgetState(#G_win_Story_LineH, \h)
     SetGadgetState(#G_win_Story_LineID, lineId)
@@ -1175,6 +1277,10 @@ Procedure Page_update(nbcase=1,updatelineproperties=1,updatenb=0,updateline=0)
     SetGadgetState(#G_win_Story_MargeTop, \MargeTop)
     SetGadgetState(#G_win_Story_SpacebetweenCase, \SpacebetweenCase)
     SetGadgetState(#G_win_Story_SpacebetweenLine, \SpacebetweenLine)
+    
+    SetGadgetState(#G_win_Story_StrokeAlpha, project\StrokeAlpha)
+    SetGadgetState(#G_win_Story_StrokeSize, project\StrokeSize)
+
   EndWith
   
   If updatelineproperties
@@ -1427,13 +1533,25 @@ Procedure CreateTheGadgets()
       AddGadget(#G_win_Story_NbCaseByLine,#Gad_spin,x,y,w1,h1,"",1,20,Lang("Set the number of cases by lines for this page (automatic mode)"),2,Lang("Nb of Cases"))
       y+h1+10
       
+      ; Stroke
+       If FrameGadget(#PB_Any, 2,y,wp-2,4*(h1+a)+20,lang("Page"))
+         y+b
+        AddGadget(#G_win_Story_StrokeSize,#Gad_spin,x,y,w1,h1,"",0,100,Lang("Set the stroke size for case borders"),0,Lang("Stroke Size")) : y+h1+a
+        AddGadget(#G_win_Story_StrokeAlpha,#Gad_spin,x,y,w1,h1,"",0,255,Lang("Set the transparency for the stroke of the case borders"),0,Lang("Stroke Alpha")) : y+h1+8
+       EndIf
+      
       ; marges
+;       If FrameGadget(#PB_Any, 2,y,wp-2,4*(h1+a)+20,lang("Marge"))
+;         y+b
+;         AddGadget(#G_win_Story_PageAddNumber,#Gad_Chkbox,x,y,w1,h1,"",0,0,lang("Add the number off the page"),0,Lang("Number")) : y+h1+10
+;       EndIf
+      
       If FrameGadget(#PB_Any, 2,y,wp-2,4*(h1+a)+20,lang("Marge"))
         y+b
-        AddGadget(#G_win_Story_MargeTop,#Gad_spin,x,y,w1,h1,"",0,20000,"Set the Top Space for this page, or in automatic mode for all pages",100,Lang("Top")) : y+h1+a
-        AddGadget(#G_win_Story_MargeBottom,#Gad_spin,x,y,w1,h1,"",0,20000,"Set the Bottom Space for this page, or in automatic mode for all pages",100,Lang("Bottom")) : y+h1+a
-        AddGadget(#G_win_Story_MargeLeft,#Gad_spin,x,y,w1,h1,"",0,20000,"Set the Left Space for this page, or in automatic mode for all pages",100,Lang("Left")) : y+h1+a
-        AddGadget(#G_win_Story_MargeRight,#Gad_spin,x,y,w1,h1,"",0,20000,"Set the Right Space for this page, or in automatic mode for all pages",100,Lang("Right")) 
+        AddGadget(#G_win_Story_MargeTop,#Gad_spin,x,y,w1,h1,"",0,20000,lang("Set the Top Space for this page, or in automatic mode for all pages"),100,Lang("Top")) : y+h1+a
+        AddGadget(#G_win_Story_MargeBottom,#Gad_spin,x,y,w1,h1,"",0,20000,lang("Set the Bottom Space for this page, or in automatic mode for all pages"),100,Lang("Bottom")) : y+h1+a
+        AddGadget(#G_win_Story_MargeLeft,#Gad_spin,x,y,w1,h1,"",0,20000,lang("Set the Left Space for this page, or in automatic mode for all pages"),100,Lang("Left")) : y+h1+a
+        AddGadget(#G_win_Story_MargeRight,#Gad_spin,x,y,w1,h1,"",0,20000,lang("Set the Right Space for this page, or in automatic mode for all pages"),100,Lang("Right")) 
         y+h1+10
       EndIf
       
@@ -1451,10 +1569,13 @@ Procedure CreateTheGadgets()
         AddGadget(#G_win_Story_LineH,#Gad_spin,x,y,w1,h1,"",0,10000,Lang("Set the height for the selected line (automatic mode should be unselected)"),0,Lang("Line H")) 
         y+h1+5
       EndIf 
-      If FrameGadget(#PB_Any, 2,y,wp-2,7*(h1+a)+20,lang("Case"))
+      If FrameGadget(#PB_Any, 2,y,wp-2,10*(h1+a)+20,lang("Case"))
         y+b
-        AddGadget(#G_win_Story_StrokeSize,#Gad_spin,x,y,w1,h1,"",0,100,Lang("Set the stroke size for case borders"),0,Lang("Stroke Size")) : y+h1+a
-        AddGadget(#G_win_Story_StrokeAlpha,#Gad_spin,x,y,w1,h1,"",0,255,Lang("Set the transparency for the stroke of the case borders"),0,Lang("Stroke Alpha")) : y+h1+8
+        AddGadget(#G_win_Story_CaseStrokeSize,#Gad_spin,x,y,w1,h1,"",0,100,Lang("Set the stroke size for case borders (if stroke is set on case or line)"),8,Lang("Stroke Size")) : y+h1+a
+        AddGadget(#G_win_Story_CaseStrokeAlpha,#Gad_spin,x,y,w1,h1,"",0,255,Lang("Set the transparency for the stroke of the case borders(if stroke is set on case or line)"),255,Lang("Stroke Alpha")) : y+h1+a
+        AddGadget(#G_win_Story_CaseStrokeSet,#Gad_Cbbox,x,y,w1,h1,"",0,0,Lang("Set the stroke of the case borders"),0,Lang("Stroke")) : y+h1+8
+        Gadget_AddItems(#G_win_Story_CaseStrokeSet,"Project,Page,Line,Case,") 
+
         AddGadget(#G_win_Story_CaseID,#Gad_spin,x,y,w1,h1,"",0,100,Lang("Select the case to modify"),0,Lang("select")) : y+h1+a
         AddGadget(#G_win_Story_CaseDepth,#Gad_spin,x,y,w1,h1,"",0,100000,Lang("Set the Depth for the selected case (the more the depth is high, the more the case is over the other cases)"),0,Lang("Depth")) : y+h1+a
         AddGadget(#G_win_Story_CaseX,#Gad_spin,x,y,w1,h1,"",-10000,10000,Lang("Set the X for the selected case (Not in automatic mode)"),0,Lang("Case X")) : y+h1+a
@@ -1512,6 +1633,7 @@ Procedure BDC_OptionsReset()
     \ShowSelected = 1
     \ToolbarH = 30
     \Zoom = 20
+    \CaseBankScale = 100
     ; project by default
     \Project\dpi = 300
     \Project\Height_mm = 297
@@ -1529,7 +1651,6 @@ Procedure BDC_OptionsReset()
     \Project\StrokeAlpha = 255
     \Project\StrokeSize = 8
     \Project\StrokeColor = 0
-    \Project\StrokeColor = 0
   EndWith
 EndProcedure
 Procedure BDC_LoadOptions()
@@ -1546,6 +1667,17 @@ Procedure BDC_LoadOptions()
     If LoadJSON(#JSONFile, FileName$, #PB_JSON_NoCase)
       ExtractJSONStructure(JSONValue(#JSONFile), @BDCOptions, sBDCOptions)
     EndIf
+    
+    ; then check for some variable
+      With BDCOptions
+;         If \firstopening=0
+;           \firstopening=1
+;           
+;         EndIf
+      CheckZero(\CaseBankScale,100)
+      CheckZero(\PanelW,250)
+      ; CheckZero(\Project\StrokeSize,8)
+    EndWith
     
     
 EndProcedure
@@ -1714,6 +1846,7 @@ Procedure Doc_Open()
             EndWith
             
           Case "line"
+            ;{ line
              Pageid = Val(StringField(line$, u, d$)) : u+1
              id = Val(StringField(line$, u, d$)) : u+1
              If id > ArraySize(project\page(pageID)\Line())
@@ -1732,8 +1865,10 @@ Procedure Doc_Open()
                \w = Val(StringField(line$, u, d$)) : u+1
                \h = Val(StringField(line$, u, d$)) : u+1
              EndWith
-            
-          Case "case"
+             ;}
+             
+           Case "case"
+             ;{ case
             Pageid = Val(StringField(line$, u, d$)) : u+1
             Lineid = Val(StringField(line$, u, d$)) : u+1
             Caseid = Val(StringField(line$, u, d$)) : u+1
@@ -1752,9 +1887,15 @@ Procedure Doc_Open()
               \NotuseMargeBottom = Val(StringField(line$, u, d$)) : u+1
               \NotuseMargeL = Val(StringField(line$, u, d$)) : u+1
               \NotuseMargeR = Val(StringField(line$, u, d$)) : u+1
+              \StrokeSet = Val(StringField(line$, u, d$)) : u+1
+              \StrokeAlpha = Val(StringField(line$, u, d$)) : u+1
+              \StrokeSize = Val(StringField(line$, u, d$)) : u+1
+              \StrokeColor = Val(StringField(line$, u, d$)) : u+1
             EndWith
+            ;}
             
           Case "image"
+            ;{ image
             Pageid = Val(StringField(line$, u, d$)) : u+1
             Lineid = Val(StringField(line$, u, d$)) : u+1
             Caseid = Val(StringField(line$, u, d$)) : u+1
@@ -1782,6 +1923,9 @@ Procedure Doc_Open()
               \TextX = Val(StringField(line$, u, d$)) : u+1
               \TextY = Val(StringField(line$, u, d$)) : u+1
               \BubleArrowTyp = Val(StringField(line$, u, d$)) : u+1
+              \miror = Val(StringField(line$, u, d$)) : u+1
+              \rotation = Val(StringField(line$, u, d$)) : u+1
+              \brightness = Val(StringField(line$, u, d$)) : u+1
               
               ; then update the case
               If \file$ <> #Empty$ Or \text$ <> #Empty$ Or \fontName$ <> #Empty$
@@ -1795,6 +1939,8 @@ Procedure Doc_Open()
                 UpdateMaincanvas_withimage()
               EndIf
             EndWith
+            ;}
+            
         EndSelect
         
       Wend
@@ -1844,7 +1990,6 @@ Procedure Doc_Save(filename$=#Empty$, saveas=0)
           d$ =","
           e$=";"
           virg$ = "{{virgule}}"
-          
 
           WriteStringN(0, "// Created with "+#BDC_ProgramName+#BDC_ProgramVersion)
           
@@ -1890,6 +2035,7 @@ Procedure Doc_Save(filename$=#Empty$, saveas=0)
                   txt$ + Str(\x)+d$+Str(\y)+d$+Str(\w)+d$+Str(\h)+d$
                   txt$ + Str(\Depth)+d$+Str(\SizeBorder)+d$+Str(\NoBorder)+d$
                   txt$ + Str(\NotuseMargeTop)+d$+Str(\NotuseMargeBottom)+d$+Str(\NotuseMargeL)+d$+Str(\NotuseMargeR)+d$
+                  txt$ + Str(\StrokeSet)+d$+Str(\StrokeAlpha)+d$+Str(\StrokeSize)+d$+Str(\StrokeColor)+d$
                   WriteStringN(0, txt$) 
                 EndWith
                 
@@ -1910,6 +2056,7 @@ Procedure Doc_Save(filename$=#Empty$, saveas=0)
                       txt$ + ReplaceString(\file$, ",",virg$)+d$+ReplaceString(\text$,",",virg$)+d$
                       txt$ + \fontName$+d$+Str(\fontSize)+d$+ReplaceString(\fontText$,",",virg$)+d$
                       txt$ + Str(\fontWidth)+d$+Str(\TextX)+d$+Str(\TextY)+d$+Str(\BubleArrowTyp)+d$
+                      txt$ + Str(\miror)+d$+Str(\rotation)+d$+Str(\brightness)+d$
                       WriteStringN(0, txt$) 
                     EndIf
                   EndWith
@@ -2084,6 +2231,57 @@ EndProcedure
 ;{ other window
 
 ; window Edit case
+Procedure Image_transform(img,transform=0)
+  
+  If transform = 0 ; mirorW
+    w = ImageWidth(img)
+    h = ImageHeight(img) 
+    Dim pixel.i(w, h)
+    Dim alph.a(w, h)
+    ; we get the color // on chope la couleur
+    If StartDrawing(ImageOutput(img))
+      DrawingMode(#PB_2DDrawing_AllChannels)
+      For y = 0 To h - 1
+        For x = 0 To w - 1
+          color = Point(x, y)
+          alpha = Alpha(color)
+          pixel(x, y) = color
+          Alph(x, y) = alpha
+        Next
+      Next
+      StopDrawing()
+    EndIf
+    
+    NewImg = CreateImage(#PB_Any, w, h, 32, #PB_Image_Transparent)
+
+     If NewImg
+      
+      If StartDrawing(ImageOutput(NewImg))
+        DrawingMode(#PB_2DDrawing_AlphaBlend)
+        For x = w - 1 To 0 Step -1
+          StripeImg = GrabImage(Img, #PB_Any, x, 0, 1, h)
+          If StripeImg
+            DrawAlphaImage(ImageID(StripeImg), w - x - 1, 0) 
+            FreeImage(StripeImg)
+          EndIf
+        Next x
+        
+        StopDrawing()
+        
+      EndIf
+      
+     ; FreeImage(img)
+    EndIf
+    FreeArray(pixel())
+    FreeArray(alph())
+    
+    ProcedureReturn NewImg
+
+  Else  
+    
+  EndIf
+  
+EndProcedure
 Procedure UpdateMaincanvas_withimage()
   With project\page(pageID)\Line(LineId)\caze(CaseID)
     
@@ -2098,6 +2296,16 @@ Procedure UpdateMaincanvas_withimage()
       EndIf
     EndIf
     
+    ; check if we have mirored image
+    For n=0 To ArraySize(\image())
+      If IsImage(\image(n)\img)
+        If \image(n)\miror
+          \image(n)\imgtemp = Image_transform(\image(n)\img,0)
+        EndIf
+      EndIf
+    Next
+    
+    ; the draw
     If StartDrawing(ImageOutput(\imageFinal\img))
       ; erase images
       DrawingMode(#PB_2DDrawing_AllChannels)
@@ -2107,18 +2315,26 @@ Procedure UpdateMaincanvas_withimage()
       DrawingMode(#PB_2DDrawing_AlphaBlend)
       For n=0 To ArraySize(\image())
         If IsImage(\image(n)\img)
+          img =  \image(n)\img
+          If \image(n)\miror
+            img =  \image(n)\imgtemp
+          EndIf
+          
           If \image(n)\scale <> 100
-            img1 = \image(n)\img
+            img1 = img
             s.d = \image(n)\scale * 0.01
             img = CopyImage(img1, #PB_Any)
             ResizeImage(img, ImageWidth(img1) * s, ImageHeight(img1) * s)
           Else
-            img = \image(n)\img
+            ; img = \image(n)\img
           EndIf
           DrawAlphaImage(ImageID(img),\image(n)\x,\image(n)\y,\image(n)\alpha)
           
           If \image(n)\scale <> 100
             Freeimage2(img)
+          EndIf
+           If \image(n)\miror
+            FreeImage(\image(n)\imgtemp)
           EndIf
         EndIf
       Next 
@@ -2161,6 +2377,8 @@ Procedure UpdateCanvas_WinEditCase()
       ; draw image of the case
       For i=0 To ArraySize(\image())
         If IsImage(\image(i)\img)
+           ResetCoordinates()
+          ScaleCoordinates(vs,vs)
           ; set variables
           s.d = \image(i)\scale * 0.01
           x = vx+\image(i)\x
@@ -2168,14 +2386,24 @@ Procedure UpdateCanvas_WinEditCase()
           w2 = \image(i)\w * s
           h2 = \image(i)\h * s
           ; draw image
-          MovePathCursor(x, y)
+         MovePathCursor(x, y)
+          If \image(i)\miror
+            x=vx+\image(i)\x+w2
+            MovePathCursor(x, y)
+            ScaleCoordinates(-1,1)
+          EndIf
           DrawVectorImage(ImageID(\image(i)\img),\image(i)\alpha,w2,h2)
+          If \image(i)\miror
+            ResetCoordinates()
+            ScaleCoordinates(vs,vs)
+            x=vx+\image(i)\x
+          EndIf
           If i = imageId
             AddPathBox(x,y,w2,h2)
             VectorSourceColor(RGBA(255,0,0,255))
             StrokePath(2)
           EndIf
-          
+         
         EndIf
       Next
     EndWith
@@ -2198,6 +2426,8 @@ Procedure Window_EditCase_SetGadgetState()
       SetGadgetState(#G_win_EditCase_ImageH, \h)
       SetGadgetState(#G_win_EditCase_ImageScale, \scale)
       SetGadgetState(#G_win_EditCase_ImageW, \w)
+      SetGadgetState(#G_win_EditCase_ImageMiror, \miror)
+      SetGadgetState(#G_win_EditCase_ImageRotation, \rotation)
     EndWith
   EndIf
 EndProcedure
@@ -2208,15 +2438,23 @@ Procedure Window_EditCase_UpdateList()
     If \nbImage>-1
       For i=0 To ArraySize(\image())
         file$ = \image(i)\file$
+        If \image(i)\typ = #CaseTyp_Text
+          file$ = \image(i)\fontText$
+        EndIf
         AddGadgetItem(#G_win_EditCase_ImageList,i, GetFilePart(file$,#PB_FileSystem_NoExtension))
       Next
     EndIf
   EndWith
 EndProcedure
 
-
-Procedure Case_Update(img,text$,file$,set=0,scale=100,alpha=255,typ=0,shapetyp=0,depth=0)
-   Shared wec_fontname$, wec_fontsize
+Procedure Case_Update(img,text$,file$,set=0,scale=-1,alpha=255,typ=0,shapetyp=0,depth=-57267,miror=0,rot=0)
+  Shared wec_fontname$, wec_fontsize
+  If scale=-1
+    scale = BDCOptions\CaseBankScale
+  EndIf
+  If depth = -57267
+    depth = BDCOptions\CaseBankDepth
+  EndIf
   
   With project\page(pageID)\Line(LineId)\caze(CaseID)
     If set = 0
@@ -2255,6 +2493,8 @@ Procedure Case_Update(img,text$,file$,set=0,scale=100,alpha=255,typ=0,shapetyp=0
       \image(n)\h = ImageHeight(img)
       \image(n)\scale = scale
       \image(n)\alpha = alpha
+      \image(n)\miror = miror
+      \image(n)\rotation = rot
       
       ImageId = n
       
@@ -2604,6 +2844,12 @@ Procedure Update_WinEdit_ImageProperties(propertie, n)
         \image(ImageID)\w = n 
       Case #Propertie_H
         \image(ImageID)\h = n 
+      Case #propertie_Miror
+        \image(ImageID)\miror = n  
+      Case #propertie_Rotation
+        \image(ImageID)\rotation = n      
+      Case #propertie_Brightness
+        \image(ImageID)\brightness = n 
       Case #Propertie_Alpha
         \image(ImageID)\alpha = n 
       Case #Propertie_Depth
@@ -2849,8 +3095,9 @@ Procedure Window_EditCase()
       
       x= 5
       ; add options gagdets for each image : scale, alpha, x, y 
-      
-      
+      AddGadget(#G_win_EditCase_BankScale, #Gad_spin,x,y,w1,h1,"",0,10000,lang("Define the default scale of the image"),
+                BDCOptions\CaseBankScale,lang("Scale")) : y+h1+a
+
       x=5
       If ScrollAreaGadget(#G_win_EditCase_BankSA,x,y,wp,h0,wp-25,h0+200)
         If CanvasGadget(#G_win_EditCase_Bankcanvas,0,0,wp-30,h0)
@@ -2888,6 +3135,9 @@ Procedure Window_EditCase()
           
           AddGadget(#G_win_EditCase_ImageDepth, #Gad_spin,x,y,w1,h1,"",0,10000,lang("Change the depth poition of the image"),0,lang("Depth")) : y+h1+a
           AddGadget(#G_win_EditCase_ImageScale, #Gad_spin,x,y,w1,h1,"",0,10000,lang("Change the Scale poition of the image"),0,lang("Scale")) : y+h1+a
+          AddGadget(#G_win_EditCase_ImageMiror, #Gad_Chkbox,x,y,w1,h1,LAng("Miror"),0,0,lang("Change the miror of the image"),0,lang("Miror")) : y+h1+a
+          AddGadget(#G_win_EditCase_ImageRotation, #Gad_spin,x,y,w1,h1,LAng("Rot"),-360,360,lang("Change the rotation of the image"),0,lang("Rot")) : y+h1+a
+          
           AddGadget(#G_win_EditCase_ImageX, #Gad_spin,x,y,w1,h1,LAng("X"),-100000,100000,lang("Change the X position of the image"),0,lang("X")) : y+h1+a
           AddGadget(#G_win_EditCase_ImageY, #Gad_spin,x,y,w1,h1,LAng("Y"),-100000,100000,lang("Change the Y position of the image"),0,lang("Y")) : y+h1+a
           AddGadget(#G_win_EditCase_ImageW, #Gad_spin,x,y,w1,h1,LAng("Width"),1,100000,lang("Change the width of the image"),0,lang("w")) : y+h1+a
@@ -3038,6 +3288,14 @@ If OpenWindow(#BDC_Win_Main, 0, 0, winW, winH, "BD creator (Storyboard & comics 
               Case #G_win_Story_Editmode
                 vd\EditMode = GetGadgetState(#G_win_Story_Editmode)
                 
+              Case #G_win_Story_CaseStrokeSet, #G_win_Story_CaseStrokeAlpha, #G_win_Story_CaseStrokeSize
+                With Project\page(pageID)\Line(lineId)\caze(CaseId)
+                 \StrokeSet = GetGadgetState(#G_win_Story_CaseStrokeSet)
+                 \StrokeAlpha = GetGadgetState(#G_win_Story_CaseStrokeAlpha)
+                 \StrokeSize = GetGadgetState(#G_win_Story_CaseStrokeSize)
+                EndWith
+                UpdateCanvasMain()
+                
               Case #G_win_Story_CaseID
                 id = GetGadgetState(#G_win_Story_CaseID)
                 If id <0 Or id > ArraySize(project\page(pageID)\Line(LineId)\caze())
@@ -3138,7 +3396,7 @@ If OpenWindow(#BDC_Win_Main, 0, 0, winW, winH, "BD creator (Storyboard & comics 
                   Project\StrokeAlpha = a
                  ok =1
                 EndIf
-                If s >0 And s<=100
+                If s >=0 And s<=100
                   project\StrokeSize = s
                   ok=1
                 EndIf
@@ -3176,6 +3434,9 @@ If OpenWindow(#BDC_Win_Main, 0, 0, winW, winH, "BD creator (Storyboard & comics 
           Case #BDC_Win_EditCase
             Select EventGadget
                 
+              Case #G_win_EditCase_BankScale
+                BDCOptions\CaseBankScale = GetGadgetState(#G_win_EditCase_BankScale)
+                
               Case #G_win_EditCase_BankAdd
                 Case_AddObject(0,1)
                 
@@ -3206,6 +3467,15 @@ If OpenWindow(#BDC_Win_Main, 0, 0, winW, winH, "BD creator (Storyboard & comics 
                 
               Case #G_win_EditCase_BtnTextAdd
                 Case_AddObject(1)
+                
+              Case #G_win_EditCase_ImageMiror
+                Update_WinEdit_ImageProperties(#propertie_Miror, GetGadgetState(EventGadget))
+                
+              Case #G_win_EditCase_ImageRotation
+                Update_WinEdit_ImageProperties(#propertie_Rotation, GetGadgetState(EventGadget))
+                
+              Case #G_win_EditCase_ImageBrightness
+                Update_WinEdit_ImageProperties(#propertie_Brightness, GetGadgetState(EventGadget))
                 
               Case #G_win_EditCase_ImageX
                 Update_WinEdit_ImageProperties(#propertie_X, GetGadgetState(EventGadget))
@@ -3364,11 +3634,10 @@ EndIf
 
 
 ; IDE Options = PureBasic 5.73 LTS (Windows - x86)
-; CursorPosition = 257
-; FirstLine = 229
-; Folding = RCOAASAM9AAAAAAACABAAAAobfAAgAAOg-17fAQAo-5bzv0ffOivB9-BAI-ZhDAwHAg
+; CursorPosition = 904
+; FirstLine = 299
+; Folding = lfAEBASAc-MEAAAAAoDOAAAAg--D3XHdsHAk5V8AwAI75-v-Jz-g-+YeAO5-DAA+vH+E58AA+
 ; EnableXP
 ; Executable = _release\bdcreator.exe
-; DisableDebugger
 ; Warnings = Display
 ; EnablePurifier
