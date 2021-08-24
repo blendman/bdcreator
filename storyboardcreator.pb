@@ -3657,6 +3657,6 @@ EndIf
 ; FirstLine = 218
 ; Folding = BAAEAASAAAAAAAAAAAAAAAAAgu0BAAMAMAAAAAAAgAQAAAAAOAAAAAAAAAAAAAAAAAAAAAAAw
 ; EnableXP
-; Executable = _release\bdcreator.exe
+; Executable = _release\bdcreator0.10.1.exe
 ; Warnings = Display
 ; EnablePurifier
