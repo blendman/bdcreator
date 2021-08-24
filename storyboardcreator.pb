@@ -87,6 +87,15 @@
 ; - wec : rotation image
 ; wip - page add the number of page gadget (numero de page)
 ; - when change W/h/X:Y of case, the others cases should be changed automatically
+; - bug with rectangle text -> is changed in ellipse and we don't see the text
+
+
+
+; 23.8.2021 0.10.1 (12)
+; // Fixe
+; - when open old file, the fontsize = 0 and fontname$ = "", so before to create the bubble -> Case_SetTextFont()
+; - if Doc_New() with caseID >0 -> crash
+
 
 ; 21.8.2021 0.10 (12)
 ; // New
@@ -279,7 +288,7 @@
 ;}
 
 
-#BDC_ProgramVersion = "0.10"
+#BDC_ProgramVersion = "0.10.1"
 #BDC_ProgramName = "BD Creator"
 Enumeration 
   
@@ -1703,6 +1712,9 @@ Procedure Doc_New(name$="New project",dpi=300,wmm=210,hmm=297,w=2500,h=3500,spac
 ;   FreeImage2(#Img_PageDrawing)
 ;   If CreateImage(#Img_PageDrawing,10,10,32,#PB_Image_Transparent) : EndIf
 ;   ImageID = #Img_PageDrawing
+  PageId = 0
+  LineId = 0
+  CaseId = 0
   
   With Project
     ; create the project
@@ -2417,7 +2429,7 @@ Procedure UpdateCanvas_WinEditCase()
   
 EndProcedure
 Procedure Window_EditCase_SetGadgetState()
-  If imageID <= ArraySize( project\page(pageId)\Line(LineId)\caze(CaseId)\image())
+  If imageID <= ArraySize( project\page(pageId)\Line(LineId)\caze(CaseId)\image()) And imageID >=0
     With project\page(pageId)\Line(LineId)\caze(CaseId)\image(ImageId)
       SetGadgetState(#G_win_EditCase_ImageX, \x)
       SetGadgetState(#G_win_EditCase_ImageY, \y)
@@ -2556,7 +2568,14 @@ Procedure Case_SetText(text$, update=0, usefontrequester=1)
         shapeTyp = \shapetyp
         wec_fontname$ = \fontName$
         wec_fontSize = \fontSize
+         If wec_fontname$ = "" Or wec_fontSize=0
+          Case_SetTextFont()
+        EndIf
         w5 = \fontWidth
+        If w5<=0
+          w5 = 500
+          \fontWidth = w5
+        EndIf
         w6 = \w -b*2
         arrowtyp = \BubleArrowTyp
         x = \TextX
@@ -3634,9 +3653,9 @@ EndIf
 
 
 ; IDE Options = PureBasic 5.73 LTS (Windows - x86)
-; CursorPosition = 904
-; FirstLine = 299
-; Folding = lfAEBASAc-MEAAAAAoDOAAAAg--D3XHdsHAk5V8AwAI75-v-Jz-g-+YeAO5-DAA+vH+E58AA+
+; CursorPosition = 2431
+; FirstLine = 218
+; Folding = BAAEAASAAAAAAAAAAAAAAAAAgu0BAAMAMAAAAAAAgAQAAAAAOAAAAAAAAAAAAAAAAAAAAAAAw
 ; EnableXP
 ; Executable = _release\bdcreator.exe
 ; Warnings = Display
