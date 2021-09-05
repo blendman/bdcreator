@@ -25,7 +25,7 @@
 ; ok 0.06 - Case : bank -> Pouvoir ajouter un personnage (issu du dossier par defaut). 
 ; ok 0.06 - Bank Canvas (folder characters -> clique et ça le place). 
 ; ok 0.06 - Personnage (image) : position, taille 
-; ok 0.13 - Image: brightness (pour l'assombrir en 1er plan).
+; - Image: brightness (pour l'assombrir en 1er plan).
 ; V 0.09
 ; ok 0.04 - Menu opendoc
 ; - Enlever des pages
@@ -38,7 +38,7 @@
 ; V 0.12
 ; ok 0.03 - Menu export image (jpg ou PNG, calque écrasé)
 ; V 0.13
-; - Menu export (image PNG de chaque page) avec taille d’export (% of export)
+; - Menu export (image PNG de chaque page) avec taille d’export (% of export)..; 
 ; v 0.14 :
 ; ok 0.03 - pouvoir dessiner sur la page
 ; v 0.15 :
@@ -68,7 +68,6 @@
 ; - load : case text
 ; - wec : miror image
 ; - WEC : object hide
-; - WEC : image brightness, contrast, 
 
 ; bugs : 
 ; ok - select line is bugged
@@ -81,11 +80,9 @@
 ; - mode normal : si on ajoute une case, il faudrait qu'elle soit créé à droite, après la dernière case et avec la largeur disponible (pas w=0 et x=0)
 ; - image/w/h isn't used on maincanvas
 
-; just idea, don't know if I will add it : 
+; Not priority : 
 ; ?? - add a "edition mode" :  page, graphics, text
 ; ??? - case : set zoom
-
-; Not priority : 
 ; - add a menu file : preference
 ; - page : delete, move < >
 ; - show the space (between line and case)
@@ -95,7 +92,7 @@
 ; - export in png layers.
 ; - keep text separated from buble (by default)
 ; - image repeated/seamless (for bg)
-; - image saturation, color
+; - image saturation, brightness, contrast, color
 ; - wec : rotation image
 ; - when change W/h/X:Y of case, the others cases should be changed automatically
 ; - bug with rectangle text -> is changed in ellipse and we don't see the text
@@ -103,25 +100,18 @@
 ; - WEC : change image option : keep size/scale
 ; - WEC : set image center (en %) + file center.txt
 ; - WEC : onglet presets case (save case preset, add the preset in the case (add all elements)
-; - use image center to place the image
+
 
 ; 5.9.2021 0.13 (17)
 ; // New
-; wip - Window_bubble : add gadget "update in realtime"
 ; - UnPreMultiplyAlpha(image) (not used for the moment)
 ; - add several macro (ckeck, check ifinf, if sup....)
 ; - Image_brightness(image, value)
-; - wec : add gadgets : image brightness, contrast
-; - wec : we can change image brightness & contrast
+; - wec : add gadget image brightness
+; - wec : we can change image brightness
 ; // changes
-; - wec : we can only select an image if not hiden
 ; - some changes in UpdateMaincanvas_withimage() 
 ; - when create the image, I copy image()\img in image()\imgtemp, to keep the original (imgtemp)
-; // Fixes
-;  - change bdcoptions\pathsave when saving document and the folder is now bdcoptions\pathsave
-;  - change bdcoptions\pathopen when open document and the folder is now bdcoptions\pathopen
-;  - export image : open the folder on bdcoptions\pathexaport (and save the path)
-;  - export as template : open the folder on data\template
 
 
 ; 4.9.2021 0.12 (16)
@@ -133,9 +123,6 @@
 ; // changes
 ; - WEC : when clic not on an image : imageID = -1
 
-
-;{ other versions
-
 ; 31.8.2021 0.11 (15)
 ; // New
 ; - add case BGcolor (rgba(255,255,25(,255) by default)
@@ -145,7 +132,7 @@
 ; - export : if fileexists->didn't export the image
 ; - export : if filename$ has extension : image not exported
 
-
+;{ other versions
 ; 30.8.2021 0.10.3 (14)
 ; // changes
 ; - in gadget_AddItems(), check extension of files before to add it in the image array.
@@ -538,7 +525,6 @@ Enumeration
   #G_win_EditBuble_TextChooseFont
   #G_win_EditBuble_BubleArrowShapeTyp
   #G_win_EditBuble_BubleArrowPosition
-  #G_win_EditBuble_UpdateRealTime
   #G_win_EditBuble_BtnOk
   ;}
   
@@ -2117,12 +2103,10 @@ Procedure Doc_New(name$="New project",dpi=300,wmm=210,hmm=297,w=2500,h=3500,spac
 EndProcedure
 Procedure Doc_Open()
   
-  Filename$ = OpenFileRequester(lang("Open a document"), BDCOptions\pathOpen$, "BDC|*.bdc|BDP|*bdp|Txt|*txt",0)
+  Filename$ = OpenFileRequester(lang("Open a document"), GetCurrentDirectory(), "BDC|*.bdc|BDP|*bdp|Txt|*txt",0)
   
   If Filename$ <> #Empty$
     
-    BDCOptions\pathOpen$ = ReplaceString(GetPathPart(filename$),GetCurrentDirectory(),"")
-
     If ReadFile(0, Filename$)
       
       d$ = ","
@@ -2323,7 +2307,7 @@ EndProcedure
 Procedure Doc_Save(filename$=#Empty$, saveas=0)
   
   If filename$ =#Empty$ Or saveas = 1
-    filename$ = SaveFileRequester(lang("Save"), BDCOptions\PathSave$,"BDC|*.bdc",0)
+    filename$ = SaveFileRequester(lang("Save"), GetCurrentDirectory(),"BDC|*.bdc",0)
   EndIf
   
   If filename$ <> #Empty$
@@ -2331,9 +2315,20 @@ Procedure Doc_Save(filename$=#Empty$, saveas=0)
       filename$+".bdc"
     EndIf
     
-    BDCOptions\PathSave$ = ReplaceString(GetPathPart(filename$),GetCurrentDirectory(),"")
+;     If FileSize(filename$)<=0
+;       ok = 1
+;     Else
+;       If MessageRequester(lang("Info"), lang("The file already exists. Do you want ot overwrite it ?"), #PB_MessageRequester_YesNo) = #PB_MessageRequester_No
+;         Doc_Save(filename$, saveas)
+;         ProcedureReturn 0
+;       Else
+;         ok = 1
+;       EndIf
+;     EndIf
     
-    If GetFileExists(filename$) = 0
+    ok = 1-GetFileExists(filename$)
+    
+    If ok = 1
         If CreateFile(0, filename$)
           d$ =","
           e$=";"
@@ -2427,13 +2422,11 @@ Procedure Doc_Save(filename$=#Empty$, saveas=0)
 EndProcedure
 Procedure Doc_ExportImage()
   
-  filename$ = SaveFileRequester(lang("save image"),BDCOptions\PathExport$,"Png|*.png|JPG|*jpg|BMP|*bmp",0)
+  filename$ = SaveFileRequester(lang("save image"),GetCurrentDirectory(),"Png|*.png|JPG|*jpg|BMP|*bmp",0)
   
   If filename$ <> #Empty$
     
     If GetFileExists(filename$) = 0
-      
-      BDCOptions\PathExport$ = ReplaceString(GetPathPart(filename$), GetCurrentDirectory(),"")
       
       ext$ = LCase(GetExtensionPart(filename$))
       If ext$ = ""
@@ -2542,7 +2535,7 @@ Procedure Doc_ExportImage()
 EndProcedure
 Procedure Doc_ExportPageAstemplate()
   
-  filename$ = SaveFileRequester(lang("Save page template"), GetCurrentDirectory()+"data\template\","BDP|*.bdp",0)
+  filename$ = SaveFileRequester(lang("Save page template"), GetCurrentDirectory(),"BDP|*.bdp",0)
   
   If filename$ <> #Empty$
     If GetExtensionPart(filename$) <> "bdc"
@@ -2608,7 +2601,7 @@ Procedure.a GetImageIdIsOk()
 EndProcedure
 
 
-; Window Adjustement ; not used
+; Window Adjustement
 Procedure Window_ImageAdujstement(mode=0)
   If GetImageIdIsOk() = 1
     If OpenWindow(#BDC_ImageADjustement,0,0,winw,winh,lang("Image Adjustement"),#PB_Window_ScreenCentered|#PB_Window_SystemMenu)
@@ -3388,7 +3381,6 @@ Procedure Event_WinEditcaseCanvas()
           oldImageId = imageId
           imageId = -1
           For k=0 To ArraySize(\image())
-            If \image(k)\hide = 0
             s.d=\image(k)\scale*0.01
             If x>=wec_vx+\image(k)\x And x<=wec_vx+\image(k)\x+(s * \image(k)\w) And y>=wec_vy+\image(k)\y And y<=wec_vy+\image(k)\y+(s * \image(k)\h)
               imageId = k
@@ -3396,7 +3388,7 @@ Procedure Event_WinEditcaseCanvas()
               If IsWindow(#BDC_Win_EditBubble)
                 WinBuble_UpdateGadgets()
               EndIf
-            EndIf
+              
             EndIf
           Next
           
@@ -3641,7 +3633,7 @@ Procedure Window_EditCase()
           AddGadget(#G_win_EditCase_ImageRotation, #Gad_spin,x,y,w1,h1,LAng("Rot"),-360,360,lang("Change the rotation of the image"),0,lang("Rot")) : y+h1+a
           AddGadget(#G_win_EditCase_ImageHide, #Gad_Chkbox,x,y,w1,h1,LAng("Hide"),0,0,lang("Hide/show the image"),0,lang("Hide")) : y+h1+5
           
-          AddGadget(#G_win_EditCase_ImageBrightness, #Gad_spin,x,y,w1,h1,LAng("Brightness"),0,255,lang("Brightness of the image"),0,lang("Brightness")) : y+h1+a
+          AddGadget(#G_win_EditCase_ImageBrightness, #Gad_spin,x,y,w1,h1,LAng("Brightness"),0,200,lang("Brightness of the image"),0,lang("Brightness")) : y+h1+a
           AddGadget(#G_win_EditCase_ImageContrast, #Gad_spin,x,y,w1,h1,LAng("Contrast"),0,255,lang("Contrast of the image"),0,lang("Contrast")) : y+h1+a
           
           AddGadget(#G_win_EditCase_ImageX, #Gad_spin,x,y,w1,h1,LAng("X"),-100000,100000,lang("Change the X position of the image"),0,lang("X")) : y+h1+a
@@ -4173,8 +4165,9 @@ EndIf
 
 
 ; IDE Options = PureBasic 5.73 LTS (Windows - x86)
-; CursorPosition = 86
-; Folding = BuCKAAAR-8gBA988LAAAAAAeTIY+-A+-PAAQAgGAAwFAcc+CQd0v9Debsb-BAAAx-AuJ+-AAftZHHOAAQHQ--
+; CursorPosition = 113
+; FirstLine = 22
+; Folding = BuBKAAAV-8gBA988LAAAAAAeTIY+-A+-PAAQAgAAAgAAYc+CQd0v9Debsb-BAAAx-AuB+bAgv3sjDHAAoDo--
 ; EnableXP
 ; Executable = _release\bdcreator.exe
 ; DisableDebugger

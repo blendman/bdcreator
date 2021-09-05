@@ -25,7 +25,7 @@
 ; ok 0.06 - Case : bank -> Pouvoir ajouter un personnage (issu du dossier par defaut). 
 ; ok 0.06 - Bank Canvas (folder characters -> clique et ça le place). 
 ; ok 0.06 - Personnage (image) : position, taille 
-; ok 0.13 - Image: brightness (pour l'assombrir en 1er plan).
+; - Image: brightness (pour l'assombrir en 1er plan).
 ; V 0.09
 ; ok 0.04 - Menu opendoc
 ; - Enlever des pages
@@ -38,7 +38,7 @@
 ; V 0.12
 ; ok 0.03 - Menu export image (jpg ou PNG, calque écrasé)
 ; V 0.13
-; - Menu export (image PNG de chaque page) avec taille d’export (% of export)
+; - Menu export (image PNG de chaque page) avec taille d’export (% of export)..; 
 ; v 0.14 :
 ; ok 0.03 - pouvoir dessiner sur la page
 ; v 0.15 :
@@ -67,8 +67,6 @@
 ; - load : case image
 ; - load : case text
 ; - wec : miror image
-; - WEC : object hide
-; - WEC : image brightness, contrast, 
 
 ; bugs : 
 ; ok - select line is bugged
@@ -79,13 +77,10 @@
 
 ; bugs : 
 ; - mode normal : si on ajoute une case, il faudrait qu'elle soit créé à droite, après la dernière case et avec la largeur disponible (pas w=0 et x=0)
-; - image/w/h isn't used on maincanvas
-
-; just idea, don't know if I will add it : 
-; ?? - add a "edition mode" :  page, graphics, text
-; ??? - case : set zoom
 
 ; Not priority : 
+; ?? - add a "edition mode" :  page, graphics, text
+; ??? - case : set zoom
 ; - add a menu file : preference
 ; - page : delete, move < >
 ; - show the space (between line and case)
@@ -95,48 +90,22 @@
 ; - export in png layers.
 ; - keep text separated from buble (by default)
 ; - image repeated/seamless (for bg)
-; - image saturation, color
+; - image saturation, brightness, contrast, color
 ; - wec : rotation image
 ; - when change W/h/X:Y of case, the others cases should be changed automatically
 ; - bug with rectangle text -> is changed in ellipse and we don't see the text
-; - WEC : object gradient or BG color (color or gradient) ?
-; - WEC : change image option : keep size/scale
-; - WEC : set image center (en %) + file center.txt
-; - WEC : onglet presets case (save case preset, add the preset in the case (add all elements)
-; - use image center to place the image
-
-; 5.9.2021 0.13 (17)
-; // New
-; wip - Window_bubble : add gadget "update in realtime"
-; - UnPreMultiplyAlpha(image) (not used for the moment)
-; - add several macro (ckeck, check ifinf, if sup....)
-; - Image_brightness(image, value)
-; - wec : add gadgets : image brightness, contrast
-; - wec : we can change image brightness & contrast
-; // changes
-; - wec : we can only select an image if not hiden
-; - some changes in UpdateMaincanvas_withimage() 
-; - when create the image, I copy image()\img in image()\imgtemp, to keep the original (imgtemp)
-; // Fixes
-;  - change bdcoptions\pathsave when saving document and the folder is now bdcoptions\pathsave
-;  - change bdcoptions\pathopen when open document and the folder is now bdcoptions\pathopen
-;  - export image : open the folder on bdcoptions\pathexaport (and save the path)
-;  - export as template : open the folder on data\template
+; - WEC : object gradient
+; - WEC : object hide
 
 
-; 4.9.2021 0.12 (16)
+; 31.8.2021 0.12 (15)
 ; // New
 ; - WEC add menu\edit\delete
 ; - WEC add shortcut objectdelete
 ; - add : case()\image()\hide
 ; - WEC : add gadget hide image.
-; // changes
-; - WEC : when clic not on an image : imageID = -1
 
-
-;{ other versions
-
-; 31.8.2021 0.11 (15)
+; 31.8.2021 0.11 (14)
 ; // New
 ; - add case BGcolor (rgba(255,255,25(,255) by default)
 ; // Changes
@@ -146,14 +115,14 @@
 ; - export : if filename$ has extension : image not exported
 
 
-; 30.8.2021 0.10.3 (14)
+; 30.8.2021 0.10.3 (13)
 ; // changes
 ; - in gadget_AddItems(), check extension of files before to add it in the image array.
 ; // Fixe
 ; - bank image : if the file isn't an image -> crash
 
 
-; 23.8.2021 0.10.1 (13)
+; 23.8.2021 0.10.1 (12)
 ; // Fixe
 ; - when open old file, the fontsize = 0 and fontname$ = "", so before to create the bubble -> Case_SetTextFont()
 ; - if Doc_New() with caseID >0 -> crash
@@ -175,6 +144,7 @@
 ; - UpdateCanvasMain() : changes to use stroke alpha, size from case if set >=2
 ; - projet\strokesize : now we can have a strokesize= 0
 
+;{ other versions
 ; 19.8.2021 0.09 (11)
 ; // New
 ; - WinBuble_UpdateGadgets() (to update the buble when we select a buble)
@@ -349,7 +319,7 @@
 ;}
 
 
-#BDC_ProgramVersion = "0.13"
+#BDC_ProgramVersion = "0.12"
 #BDC_ProgramName = "BD Creator"
 Enumeration 
   
@@ -360,7 +330,6 @@ Enumeration
   #BDC_Win_ProjectProperties
   #BDC_Win_EditCase
   #BDC_Win_EditBubble
-  #BDC_ImageADjustement
   ;}
   
   ;{ menu
@@ -521,7 +490,6 @@ Enumeration
   #G_win_EditCase_ImageRepeatY
   #G_win_EditCase_ImageBrightness
   #G_win_EditCase_ImageContrast
-  #G_win_EditCase_ImageColor
   #G_win_EditCase_ImageScale
   #G_win_EditCase_ImageAlpha
   #G_win_EditCase_ImageDepth
@@ -538,7 +506,6 @@ Enumeration
   #G_win_EditBuble_TextChooseFont
   #G_win_EditBuble_BubleArrowShapeTyp
   #G_win_EditBuble_BubleArrowPosition
-  #G_win_EditBuble_UpdateRealTime
   #G_win_EditBuble_BtnOk
   ;}
   
@@ -651,10 +618,6 @@ Structure sImg
   miror.a
   rotation.w
   brightness.a
-  Contrast.a
-  R.a
-  G.a
-  b.a
   ; WEC (windiw edit case)
   hide.a
 EndStructure
@@ -819,42 +782,17 @@ Macro InsertArrayElement(ar, el)
     
 EndMacro
 ;}
-
-; verification >255, <0, etc
 Macro CheckZero(a,b)
   If a<=0
     a=b
   EndIf
 EndMacro
-
-Macro SetMax(a,b)
-  If a > b
-    a = b
-  EndIf  
-EndMacro
-
-Macro CheckIfInf(a,b)
-  If a < b
-    a = b
-  EndIf  
-EndMacro
-Macro CheckIfInf2(a,b)
-  If a < b
-    b = a
-  EndIf  
-EndMacro
-Macro Check0(a)
-  SetMax(a,255)
-  CheckIfInf(a,0)
-EndMacro
-
 ;}
 ;{ procedures
 Declare Line_SetProperties(i,x,y,w,h)
 Declare Line_SetNBCase(nbcase=2)
 Declare Case_SetProperties(i,x,y,w,h)
 Declare UpdateMaincanvas_withimage()
-Declare UpdateCanvas_WinEditCase()
 Declare Case_SetText(text$, update=0, usefontrequester=1)
 Declare Window_EditBubble()
 
@@ -862,231 +800,11 @@ Declare Window_EditBubble()
 Procedure.s Lang(text$)
   ProcedureReturn text$
 EndProcedure
-
-;{ Images
 Procedure Freeimage2(id)
   If IsImage(id) : FreeImage(id) : EndIf
 EndProcedure
-Procedure UnPreMultiplyAlpha(image)
-  ; by Chi, english forum
-  c = 255
-  tmp = CopyImage(image,#PB_Any)
-  
-  If StartDrawing(ImageOutput(image))
-    DrawingMode(#PB_2DDrawing_AllChannels)
-    Box(0,0,OutputWidth(),OutputHeight(),RGBA(0,0,0,255))
-    DrawAlphaImage(ImageID(tmp),0,0)
-    
-    DrawingMode(#PB_2DDrawing_AlphaClip)
-    Box(0,0,OutputWidth(),OutputHeight(),RGBA(0,0,0,255))
-   ; DrawingMode(#PB_2DDrawing_AlphaBlend)
-    DrawAlphaImage(ImageID(tmp),0,0)
-    
-    For y=0 To ImageHeight(image)-1
-      For x=0 To ImageWidth(image)-1
-        color = Point(x, y)
-        alpha = Alpha(color)
-        
-        alpha2 = Alpha(color)
-        If alpha=0 : alpha=1 : EndIf
-        If alpha2>0
-          ;r = (255 * Red(color) + (alpha2 /2)) /alpha
-          r = (c * Red(color) ) /alpha
-          If r>255
-            r=255
-          EndIf
-          ;g = (255 * Green(color) + (alpha2 /2)) /alpha
-          g = (c * Green(color)) /alpha
-          If g>255
-            g=255
-          EndIf
-          ;b = (255 * Blue(color) + (alpha2 /2)) /alpha
-          b = (c * Blue(color) ) /alpha
-          If b>255
-            b = 255
-          EndIf
-          Plot(x, y, RGBA( r, g, b, alpha2))
-        Else
-          Plot(x, y, RGBA(Red(color), Green(color), Blue(color), alpha2))
-        EndIf
-      Next
-    Next
-    StopDrawing()
-  EndIf
-  
-  FreeImage2(tmp)
-  
-  ; MessageRequester("", "unpremul ok : "+Str(image))
-  
-  ProcedureReturn image
-EndProcedure
-ProcedureDLL.i Brightness(Color.i, value.f) 
-  
-  ; Eclaicir ou foncer une Color
-  ; by LSI ?
-  Protected Red.i, Green.i, Blue.i, Alpha.i
-  
-  Red = Color & $FF
-  Green = Color >> 8 & $FF
-  Blue = Color >> 16 & $FF
-  Alpha = Color >> 24
-  Red * value
-  Green * value
-  Blue * value
-  
-  If Red > 255 : Red = 255 : EndIf
-  If Green > 255 : Green = 255 : EndIf
-  If Blue > 255 : Blue = 255 : EndIf
-  
-  ProcedureReturn (Red | Green <<8 | Blue << 16 | Alpha << 24)
-EndProcedure
-Macro IE_GetImagePixelColor(img)
-  
-  w = ImageWidth(img)
-  h = ImageHeight(img) 
-  Dim pixel.i(w, h)
-  Dim alph.a(w, h)
-  
-  ; we get the color // on chope la couleur
-  If StartDrawing(ImageOutput(img))
-    DrawingMode(#PB_2DDrawing_AllChannels)
-    For y = 0 To h - 1
-      For x = 0 To w - 1
-        color = Point(x, y)
-        alpha = Alpha(color)
-        pixel(x, y) = color
-        Alph(x, y) = alpha
-      Next
-    Next
-    StopDrawing()
-  EndIf
-EndMacro
-Macro IE_SetImageOutput(Image,a1=0)
-  
-  DrawOk = 0
-  
-  W = ImageWidth(Image)
-  H = ImageHeight(Image)
-  If StartDrawing(ImageOutput(Image))
-    DrawOk = 1                     
-  EndIf
-  
-  If DrawOk
-    
-    ;"Buffer" : le pointeur vers l'espace memoire.
-    Buffer = DrawingBuffer()
-    
-    If Buffer <> 0
-      ;Organisation du buffer :
-      pixelFormat = DrawingBufferPixelFormat()
-      ; pixelFormat va te donner une constante car sa peut varier ; Voir la documentation
-      lineLength = DrawingBufferPitch();Longueur d'une ligne
-      If pixelFormat = #PB_PixelFormat_32Bits_BGR | #PB_PixelFormat_ReversedY
-        For i = a1 To W-(1+a1) ;Pour chaque ligne
-          For j = a1 To H-(1+a1) ; Pour chaque colonne (donc pour chaque pixel) :
-            
-EndMacro
-Macro IE_SetImageOutput1(mode=0)
-            
-          Next j
-        Next i
-      EndIf
-      StopDrawing()
-    EndIf
-  EndIf
-  
-  If mode =0
-    UpdateCanvas_WinEditCase()
-  EndIf
-  
-EndMacro
-Procedure IE_ColorBalance1(img, r1, g1, b1, mode= 0)
-  
-  r2.d = r1/126
-  g2.d = g1/126
-  b2.d = b1/126
-  
-  IE_SetImageOutput(img,0)
-  
-  ; On lit le pixels
-  b = PeekA(Buffer + 4 * i + j * lineLength);Bleu
-  g = PeekA(Buffer + 4 * i + j * lineLength + 1);Vert
-  r = PeekA(Buffer + 4 * i + j * lineLength + 2);Rouge 
-  
-  ; on effectue l'opération 
-  ;Rouge = Rouge * Echelle + Rouge2 * (1-Echelle)
-  r = r * r2 + r1 *(1-r2) 
-  Check0(r)
-  g = g * g2 + g1 *(1-g2)
-  Check0(g)
-  b = b * b2 + b1 *(1-b2)     
-  Check0(b)
-  
-  ; on poke le pixel
-  PokeA(Buffer + 4 * i + j * lineLength,      b);Bleu
-  PokeA(Buffer + 4 * i + j * lineLength + 1,  g);Vert
-  PokeA(Buffer + 4 * i + j * lineLength + 2,  r);Rouge  
-  
-  IE_SetImageOutput1(mode)
-  
-  ProcedureReturn img  
-EndProcedure
-Procedure IE_ColorBalance(img, r1, g1, b1, mode= 0)
-  
-  IE_SetImageOutput(img)
-  
-  ; On lit le pixels
-  b = PeekA(Buffer + 4 * i + j * lineLength);Bleu
-  g = PeekA(Buffer + 4 * i + j * lineLength + 1);Vert
-  r = PeekA(Buffer + 4 * i + j * lineLength + 2);Rouge 
-  
-  ; on effectue l'opération 
-  If (r+g+b)/3 < 240
-    r = r + r1
-    SetMax(r,255)
-    g = g + g1
-    SetMax(g,255)
-    b = b + b1
-    SetMax(b,255)
-  Else
-    If (r+g)/2 <250
-      r = r + r1
-      SetMax(r,255)
-      g = g + g1
-      SetMax(g,255)
-      ; b = b + b1
-      ; SetMax(b,255)                
-    ElseIf (r+b)/2 < 250
-      r = r + r1
-      SetMax(r,255)
-      ; g = g + g1
-      ; SetMax(g,255)                
-      b = b + b1
-      SetMax(rb,255)
-    ElseIf (g+b)/2 < 250
-      ; r = r + r1
-      ; SetMax(r,255)                
-      g = g + g1
-      SetMax(g,255)
-      b = b + b1
-      SetMax(b,255)
-    EndIf
-  EndIf
-  
-  ; on poke le pixel
-  PokeA(Buffer + 4 * i + j * lineLength,      b) ;Bleu
-  PokeA(Buffer + 4 * i + j * lineLength + 1,  g) ;Vert
-  PokeA(Buffer + 4 * i + j * lineLength + 2,  r) ;Rouge  
-  
-  IE_SetImageOutput1(mode)
-  
-  ProcedureReturn img  
-EndProcedure
 
-;}
-
-
-;{ pages
+; pages
 Procedure ChangePixelToCm(w, nbdpi, mode=0)
   If mode = 0 ; pixel to mm
     ; w in mm
@@ -1114,7 +832,7 @@ Procedure VerifyCaseLine()
   EndWith
   
 EndProcedure
-;}
+
 
 Procedure Canvas_DrawImage(i,j,x1,y1)
   ; images
@@ -2117,12 +1835,10 @@ Procedure Doc_New(name$="New project",dpi=300,wmm=210,hmm=297,w=2500,h=3500,spac
 EndProcedure
 Procedure Doc_Open()
   
-  Filename$ = OpenFileRequester(lang("Open a document"), BDCOptions\pathOpen$, "BDC|*.bdc|BDP|*bdp|Txt|*txt",0)
+  Filename$ = OpenFileRequester(lang("Open a document"), GetCurrentDirectory(), "BDC|*.bdc|BDP|*bdp|Txt|*txt",0)
   
   If Filename$ <> #Empty$
     
-    BDCOptions\pathOpen$ = ReplaceString(GetPathPart(filename$),GetCurrentDirectory(),"")
-
     If ReadFile(0, Filename$)
       
       d$ = ","
@@ -2323,7 +2039,7 @@ EndProcedure
 Procedure Doc_Save(filename$=#Empty$, saveas=0)
   
   If filename$ =#Empty$ Or saveas = 1
-    filename$ = SaveFileRequester(lang("Save"), BDCOptions\PathSave$,"BDC|*.bdc",0)
+    filename$ = SaveFileRequester(lang("Save"), GetCurrentDirectory(),"BDC|*.bdc",0)
   EndIf
   
   If filename$ <> #Empty$
@@ -2331,9 +2047,20 @@ Procedure Doc_Save(filename$=#Empty$, saveas=0)
       filename$+".bdc"
     EndIf
     
-    BDCOptions\PathSave$ = ReplaceString(GetPathPart(filename$),GetCurrentDirectory(),"")
+;     If FileSize(filename$)<=0
+;       ok = 1
+;     Else
+;       If MessageRequester(lang("Info"), lang("The file already exists. Do you want ot overwrite it ?"), #PB_MessageRequester_YesNo) = #PB_MessageRequester_No
+;         Doc_Save(filename$, saveas)
+;         ProcedureReturn 0
+;       Else
+;         ok = 1
+;       EndIf
+;     EndIf
     
-    If GetFileExists(filename$) = 0
+    ok = 1-GetFileExists(filename$)
+    
+    If ok = 1
         If CreateFile(0, filename$)
           d$ =","
           e$=";"
@@ -2427,13 +2154,11 @@ Procedure Doc_Save(filename$=#Empty$, saveas=0)
 EndProcedure
 Procedure Doc_ExportImage()
   
-  filename$ = SaveFileRequester(lang("save image"),BDCOptions\PathExport$,"Png|*.png|JPG|*jpg|BMP|*bmp",0)
+  filename$ = SaveFileRequester(lang("save image"),GetCurrentDirectory(),"Png|*.png|JPG|*jpg|BMP|*bmp",0)
   
   If filename$ <> #Empty$
     
     If GetFileExists(filename$) = 0
-      
-      BDCOptions\PathExport$ = ReplaceString(GetPathPart(filename$), GetCurrentDirectory(),"")
       
       ext$ = LCase(GetExtensionPart(filename$))
       If ext$ = ""
@@ -2542,7 +2267,7 @@ Procedure Doc_ExportImage()
 EndProcedure
 Procedure Doc_ExportPageAstemplate()
   
-  filename$ = SaveFileRequester(lang("Save page template"), GetCurrentDirectory()+"data\template\","BDP|*.bdp",0)
+  filename$ = SaveFileRequester(lang("Save page template"), GetCurrentDirectory(),"BDP|*.bdp",0)
   
   If filename$ <> #Empty$
     If GetExtensionPart(filename$) <> "bdc"
@@ -2599,32 +2324,6 @@ EndProcedure
 ;}
 
 ;{ other window
-Procedure.a GetImageIdIsOk()
-  If imageId >-1 And imageID<= ArraySize(Project\page(pageid)\Line(lineId)\caze(caseId)\image())
-    ProcedureReturn 1
-  Else
-    ProcedureReturn 0
-  EndIf
-EndProcedure
-
-
-; Window Adjustement ; not used
-Procedure Window_ImageAdujstement(mode=0)
-  If GetImageIdIsOk() = 1
-    If OpenWindow(#BDC_ImageADjustement,0,0,winw,winh,lang("Image Adjustement"),#PB_Window_ScreenCentered|#PB_Window_SystemMenu)
-      
-      img = Project\page(pageid)\Line(lineId)\caze(caseId)\image(imageID)\img
-      IE_GetImagePixelColor(img)
-      ; mode = 0 : color balance
-      ; mode=1 : brightness
-      Select mode
-      EndSelect 
-      
-    EndIf
-  EndIf
-EndProcedure
-
-
 
 ; window Edit case
 Procedure WEC_updateShortcut(create=1)
@@ -2705,7 +2404,7 @@ Procedure UpdateMaincanvas_withimage()
     For n=0 To ArraySize(\image())
       If IsImage(\image(n)\img)
         If \image(n)\miror
-          \image(n)\img = Image_transform(\image(n)\imgtemp,0)
+          \image(n)\imgtemp = Image_transform(\image(n)\img,0)
         EndIf
       EndIf
     Next
@@ -2721,9 +2420,9 @@ Procedure UpdateMaincanvas_withimage()
       For n=0 To ArraySize(\image())
         If IsImage(\image(n)\img)
           img =  \image(n)\img
-;           If \image(n)\miror
-;             img =  \image(n)\imgtemp
-;           EndIf
+          If \image(n)\miror
+            img =  \image(n)\imgtemp
+          EndIf
           
           If \image(n)\scale <> 100
             img1 = img
@@ -2738,9 +2437,9 @@ Procedure UpdateMaincanvas_withimage()
           If \image(n)\scale <> 100
             Freeimage2(img)
           EndIf
-;            If \image(n)\miror
-;             FreeImage(\image(n)\imgtemp)
-;           EndIf
+           If \image(n)\miror
+            FreeImage(\image(n)\imgtemp)
+          EndIf
         EndIf
       Next 
       StopDrawing()
@@ -2782,8 +2481,7 @@ Procedure UpdateCanvas_WinEditCase()
       ; draw image of the case
       For i=0 To ArraySize(\image())
         If \image(i)\hide = 0
-          img = \image(i)\img
-          If IsImage(img)
+          If IsImage(\image(i)\img)
           ResetCoordinates()
           ScaleCoordinates(vs,vs)
           ; set variables
@@ -2799,7 +2497,7 @@ Procedure UpdateCanvas_WinEditCase()
             MovePathCursor(x, y)
             ScaleCoordinates(-1,1)
           EndIf
-          DrawVectorImage(ImageID(img),\image(i)\alpha,w2,h2)
+          DrawVectorImage(ImageID(\image(i)\img),\image(i)\alpha,w2,h2)
           If \image(i)\miror
             ResetCoordinates()
             ScaleCoordinates(vs,vs)
@@ -2836,8 +2534,6 @@ Procedure Window_EditCase_SetGadgetState()
       SetGadgetState(#G_win_EditCase_ImageW, \w)
       SetGadgetState(#G_win_EditCase_ImageMiror, \miror)
       SetGadgetState(#G_win_EditCase_ImageRotation, \rotation)
-      SetGadgetState(#G_win_EditCase_ImageBrightness, \brightness)
-      SetGadgetState(#G_win_EditCase_ImageContrast, \Contrast)
     EndWith
   EndIf
 EndProcedure
@@ -2857,43 +2553,7 @@ Procedure Window_EditCase_UpdateList()
   EndWith
 EndProcedure
 
-Procedure WEC_ImageAdjust()
-  
-  If GetImageIdIsOk() = 1
-    With Project\page(pageid)\Line(lineId)\caze(caseId)\image(ImageID)
-      
-      If \brightness Or \Contrast>1
-        
-        tempImgPaper = CopyImage(\imgtemp, #PB_Any)
-        
-        Echelle.d = (400+\Contrast)/400
-        EchelleB.d = \brightness/100 ; 0.2
-        
-        If StartDrawing(ImageOutput(tempImgPaper))
-          For i= 0 To OutputWidth()-1
-            For j=0 To OutputHeight()-1
-              col = Point(i,j)
-              r = (Red(col) * Echelle  + 127 * (1 - Echelle)) * EchelleB
-              g = (Green(col)* Echelle  + 127 * (1 - Echelle))* EchelleB
-              b = (Blue(col)* Echelle  + 127 * (1 - Echelle)) * EchelleB
-              Check0(r)
-              Check0(g)
-              Check0(b)
-              Plot(i,j,RGB(r,g,b))
-            Next
-          Next
-          StopDrawing()
-        EndIf
-        
-        freeimage2(\img)
-        \img = tempImgPaper
-        UpdateCanvas_WinEditCase()
-      EndIf
-    EndWith
-  EndIf
-  
-EndProcedure
-Procedure Case_Update(img,text$,file$,set=0,scale=-1,alpha=255,typ=0,shapetyp=0,depth=-57267,miror=0,rot=0, Brightness=100)
+Procedure Case_Update(img,text$,file$,set=0,scale=-1,alpha=255,typ=0,shapetyp=0,depth=-57267,miror=0,rot=0)
   Shared wec_fontname$, wec_fontsize
   If scale=-1
     scale = BDCOptions\CaseBankScale
@@ -2925,7 +2585,6 @@ Procedure Case_Update(img,text$,file$,set=0,scale=-1,alpha=255,typ=0,shapetyp=0,
     If IsGadget(#G_win_EditCase_ImageList)
       \image(n)\depth = depth
       \image(n)\img = img
-      \image(n)\imgtemp = CopyImage(img, #PB_Any)
       
       \image(n)\typ = typ
       \image(n)\shapetyp = shapetyp
@@ -2942,7 +2601,6 @@ Procedure Case_Update(img,text$,file$,set=0,scale=-1,alpha=255,typ=0,shapetyp=0,
       \image(n)\alpha = alpha
       \image(n)\miror = miror
       \image(n)\rotation = rot
-      \image(n)\brightness = brightness
       
       ImageId = n
       
@@ -3205,13 +2863,8 @@ Procedure Case_AddObject(typ=0, mode=0)
     ;}
   ElseIf typ = #CaseTyp_Img
     ;{ add image
-    set = 0
-    If mode = 0 Or mode = 2
+    If mode = 0
       file$= OpenFileRequester(lang("add an image"),BDCOptions\PathImage$,"image|*.png;*.jpg",0)
-      If mode = 2
-        set =1
-      EndIf
-      
     Else
       file$ = wec_bankimage(wec_bankimageid)\file$
     EndIf
@@ -3221,14 +2874,13 @@ Procedure Case_AddObject(typ=0, mode=0)
       ;Debug BDCOptions\PathImage$
       img = LoadImage(#PB_Any, file$)
       If img > 0 
-        Case_Update(img,text$,file$,set)
+        Case_Update(img,text$,file$)
       EndIf
     EndIf
     ;}
     
   ElseIf typ = 2
     ;{ delete object (image/text)
-    If imageId>-1 And imageID <= ArraySize(project\page(pageID)\Line(LineId)\caze(CaseID)\image())
     If ArraySize(project\page(pageID)\Line(LineId)\caze(CaseID)\image())>0
       DeleteArrayElement( project\page(pageID)\Line(LineId)\caze(CaseID)\image, imageId)
        project\page(pageID)\Line(LineId)\caze(CaseID)\nbImage-1
@@ -3247,7 +2899,6 @@ Procedure Case_AddObject(typ=0, mode=0)
     Window_EditCase_SetGadgetState()
     UpdateMainCanvas_WithImage()
     UpdateCanvasMain()
-    EndIf
     ;}
   EndIf
   
@@ -3296,59 +2947,41 @@ Procedure Window_EDitBubble()
 EndProcedure
 
 Procedure Update_WinEdit_ImageProperties(propertie, n)
- 
   With project\page(pageID)\Line(lineID)\caze(CaseId)
-    If GetImageIdIsOk()
-      Select propertie
-        Case #Propertie_Depth
-          ;{ depth
-          \image(ImageID)\depth = n 
-          name$ = \image(ImageID)\file$
-          SortStructuredArray(\image(),#PB_Sort_Ascending, OffsetOf(sImg\depth), TypeOf(sImg\depth))
-          ClearGadgetItems(#G_win_EditCase_ImageList)
-          For i=0 To ArraySize(\image())
-            file$ = \image(i)\file$
-            AddGadgetItem(#G_win_EditCase_ImageList,i, GetFilePart(file$,#PB_FileSystem_NoExtension))
-            If name$ = \image(i)\file$
-              imageID = i
-            EndIf
-          Next
-          ;}
-        Case #Propertie_Scale
-          \image(ImageID)\scale = n
-        Case #Propertie_X
-          \image(ImageID)\x = n
-        Case #Propertie_Y
-          \image(ImageID)\y = n 
-        Case #Propertie_W
-          \image(ImageID)\w = n 
-        Case #Propertie_H
-          \image(ImageID)\h = n 
-        Case #propertie_Miror
-          \image(ImageID)\miror = n  
-        Case #propertie_Rotation
-          \image(ImageID)\rotation = n      
-        Case #propertie_Brightness
-          If n <> \image(ImageID)\brightness 
-            \image(ImageID)\brightness = n 
-            WEC_ImageAdjust()
+    Select propertie
+      Case #Propertie_X
+        \image(ImageID)\x = n
+      Case #Propertie_Y
+        \image(ImageID)\y = n 
+      Case #Propertie_W
+        \image(ImageID)\w = n 
+      Case #Propertie_H
+        \image(ImageID)\h = n 
+      Case #propertie_Miror
+        \image(ImageID)\miror = n  
+      Case #propertie_Rotation
+        \image(ImageID)\rotation = n      
+      Case #propertie_Brightness
+        \image(ImageID)\brightness = n 
+      Case #Propertie_Alpha
+        \image(ImageID)\alpha = n 
+      Case #Propertie_Depth
+        \image(ImageID)\depth = n 
+       name$ = \image(ImageID)\file$
+        SortStructuredArray(\image(),#PB_Sort_Ascending, OffsetOf(sImg\depth), TypeOf(sImg\depth))
+        ClearGadgetItems(#G_win_EditCase_ImageList)
+        For i=0 To ArraySize(\image())
+          file$ = \image(i)\file$
+          AddGadgetItem(#G_win_EditCase_ImageList,i, GetFilePart(file$,#PB_FileSystem_NoExtension))
+          If name$ = \image(i)\file$
+            imageID = i
           EndIf
-        Case #propertie_Contrast
-          If n <> \image(ImageID)\Contrast 
-            \image(ImageID)\Contrast = n 
-            WEC_ImageAdjust()
-          EndIf
-        Case #Propertie_Alpha
-          \image(ImageID)\alpha = n 
-        Case #Propertie_Hide
-          \image(ImageID)\hide = n 
-          
-      EndSelect
-      
-      UpdateCanvas_WinEditCase()
-    EndIf
+        Next
+      Case #Propertie_Scale
+        \image(ImageID)\scale = n
+    EndSelect
   EndWith
- 
+  UpdateCanvas_WinEditCase()
 EndProcedure
 Procedure Event_WinEditcaseCanvas()
   Static wec_clic, wec_start.spoint, wec_Shift, wec_ctrl, wec_Space, wec_startscale
@@ -3386,9 +3019,7 @@ Procedure Event_WinEditcaseCanvas()
           
           ; select the image under the clic mouseleft
           oldImageId = imageId
-          imageId = -1
           For k=0 To ArraySize(\image())
-            If \image(k)\hide = 0
             s.d=\image(k)\scale*0.01
             If x>=wec_vx+\image(k)\x And x<=wec_vx+\image(k)\x+(s * \image(k)\w) And y>=wec_vy+\image(k)\y And y<=wec_vy+\image(k)\y+(s * \image(k)\h)
               imageId = k
@@ -3396,19 +3027,17 @@ Procedure Event_WinEditcaseCanvas()
               If IsWindow(#BDC_Win_EditBubble)
                 WinBuble_UpdateGadgets()
               EndIf
-            EndIf
+              
             EndIf
           Next
-          
-            If oldImageId <> ImageID  
-              oldImageId = ImageID
-              UpdateCanvas_WinEditCase()
-            EndIf
-          If imageId>-1 And image <= ArraySize(\image()) 
-            wec_start\x = x - \image(ImageID)\x
-            wec_start\y = y - \image(ImageID)\y
-            wec_startscale = \image(ImageID)\scale
+          If oldImageId <> ImageID
+            oldImageId = ImageID
+            UpdateCanvas_WinEditCase()
           EndIf
+          
+          wec_start\x = x - \image(ImageID)\x
+          wec_start\y = y - \image(ImageID)\y
+          wec_startscale = \image(ImageID)\scale
          EndWith
       EndIf
 ;       ; select the object (image or text)
@@ -3579,12 +3208,11 @@ Procedure Window_EditCase()
     WEC_UpdateShortcut()
     ;}
     
+    
     ;{ add gadgets
-    x=5 : y=5 : wp=250 : h=200 : h1=30 : w1=wp-110 : h0=winh-y*2-10 : a=2
+    x=5 : y=5 : wp=250 : h=200 : h1=30 : w1=wp-110 : h0=winh-y*2 : a=2
     If PanelGadget(#G_win_EditCase_Panel,x,y,wp,h0)
       wp-10
-      
-      ;{ tab "bank"
       AddGadgetItem(#G_win_EditCase_Panel,-1,lang("Bank"))
       ;{ gadgets for bank tab
       AddGadget(#G_win_EditCase_BankFolder, #Gad_Cbbox,x,y,w1,h1,"",0,0,lang("Set the folder for image")) : y+h1+a
@@ -3606,19 +3234,17 @@ Procedure Window_EditCase()
         CloseGadgetList()
       EndIf
       ;}
-      ;}
       
-      ;{ tab options (not used)
 ;       AddGadgetItem(#G_win_EditCase_Panel,-1,lang("Options"))
+;       ;{
 ;       x=5 : y=5
 ;       ; options for default image or text creation (ex : scale, alpha, x,y ...)
-      ;}
+;       ;}
       
-      ;{ tab "case"
       AddGadgetItem(#G_win_EditCase_Panel,-1,lang("Case"))
       x=5 : y=5
-      If ScrollAreaGadget(#PB_Any,x,y,wp,h0,wp-25,h0+250)
-        cont = ContainerGadget(#PB_Any,0,0,wp,h0+1200)
+      If ScrollAreaGadget(#PB_Any,x,y,wp,h0,wp-25,h0+200)
+        cont = ContainerGadget(#PB_Any,0,0,wp,h0+1000)
         If cont>0
           c= 200
           SetGadgetColor(cont, #PB_Gadget_BackColor, RGB(c,c,c))
@@ -3639,10 +3265,6 @@ Procedure Window_EditCase()
           AddGadget(#G_win_EditCase_ImageScale, #Gad_spin,x,y,w1,h1,"",0,10000,lang("Change the Scale poition of the image"),0,lang("Scale")) : y+h1+a
           AddGadget(#G_win_EditCase_ImageMiror, #Gad_Chkbox,x,y,w1,h1,LAng("Miror"),0,0,lang("Change the miror of the image"),0,lang("Miror")) : y+h1+a
           AddGadget(#G_win_EditCase_ImageRotation, #Gad_spin,x,y,w1,h1,LAng("Rot"),-360,360,lang("Change the rotation of the image"),0,lang("Rot")) : y+h1+a
-          AddGadget(#G_win_EditCase_ImageHide, #Gad_Chkbox,x,y,w1,h1,LAng("Hide"),0,0,lang("Hide/show the image"),0,lang("Hide")) : y+h1+5
-          
-          AddGadget(#G_win_EditCase_ImageBrightness, #Gad_spin,x,y,w1,h1,LAng("Brightness"),0,255,lang("Brightness of the image"),0,lang("Brightness")) : y+h1+a
-          AddGadget(#G_win_EditCase_ImageContrast, #Gad_spin,x,y,w1,h1,LAng("Contrast"),0,255,lang("Contrast of the image"),0,lang("Contrast")) : y+h1+a
           
           AddGadget(#G_win_EditCase_ImageX, #Gad_spin,x,y,w1,h1,LAng("X"),-100000,100000,lang("Change the X position of the image"),0,lang("X")) : y+h1+a
           AddGadget(#G_win_EditCase_ImageY, #Gad_spin,x,y,w1,h1,LAng("Y"),-100000,100000,lang("Change the Y position of the image"),0,lang("Y")) : y+h1+a
@@ -3653,9 +3275,6 @@ Procedure Window_EditCase()
         EndIf
         CloseGadgetList()
       EndIf
-      ;}
-      
-      
       CloseGadgetList()
     EndIf
   
@@ -3943,7 +3562,7 @@ If OpenWindow(#BDC_Win_Main, 0, 0, winW, winH, "BD creator (Storyboard & comics 
           
           Case #BDC_Win_EditCase
             Select EventGadget
-                ;{ bank 
+                
               Case #G_win_EditCase_BankScale
                 BDCOptions\CaseBankScale = GetGadgetState(#G_win_EditCase_BankScale)
                 
@@ -3956,25 +3575,17 @@ If OpenWindow(#BDC_Win_Main, 0, 0, winW, winH, "BD creator (Storyboard & comics 
 
               Case #G_win_EditCase_Bankcanvas
                 WEC_eventBankCanvas()
-                ;}
                 
               Case #G_win_EditCase_BtnTextSet
                 ; Debug Project\page(pageid)\Line(LineId)\caze(CaseID)\image(ImageID)\fontText$
-                
                 If Project\page(pageid)\Line(LineId)\caze(CaseID)\nbImage>=0
-                  If imageID >-1
-                    ; text$ = InputRequester(lang("text"), lang("Add a text"),Project\page(pageid)\Line(LineId)\caze(CaseID)\image(ImageID)\fontText$)
-                    If Project\page(pageid)\Line(LineId)\caze(CaseID)\image(imageID)\typ =  #CaseTyp_Text
-                      Window_EditBubble()
-                      ; Case_SetText(text$, 1)
-                    Else
-                      ; change the image
-                      Case_AddObject(#CaseTyp_Img, 2)
-                    EndIf
-                  EndIf
+                  ; text$ = InputRequester(lang("text"), lang("Add a text"),Project\page(pageid)\Line(LineId)\caze(CaseID)\image(ImageID)\fontText$)
+                  Window_EDitBubble()
+                  ; Case_SetText(text$, 1)
                 Else
                   Case_AddObject(1)
                 EndIf
+                
                    
               Case #G_win_EditCase_Canvas
                 Event_WinEditcaseCanvas()
@@ -3994,12 +3605,6 @@ If OpenWindow(#BDC_Win_Main, 0, 0, winW, winH, "BD creator (Storyboard & comics 
                 
               Case #G_win_EditCase_ImageBrightness
                 Update_WinEdit_ImageProperties(#propertie_Brightness, GetGadgetState(EventGadget))
-                
-              Case #G_win_EditCase_ImageContrast
-                Update_WinEdit_ImageProperties(#propertie_Contrast, GetGadgetState(EventGadget))
-                
-              Case #G_win_EditCase_ImageColor
-                Update_WinEdit_ImageProperties(#Propertie_Color, GetGadgetState(EventGadget))
                 
               Case #G_win_EditCase_ImageX
                 Update_WinEdit_ImageProperties(#propertie_X, GetGadgetState(EventGadget))
@@ -4021,9 +3626,6 @@ If OpenWindow(#BDC_Win_Main, 0, 0, winW, winH, "BD creator (Storyboard & comics 
                 
               Case #G_win_EditCase_ImageScale
                 Update_WinEdit_ImageProperties(#Propertie_Scale, GetGadgetState(EventGadget))
-                
-              Case #G_win_EditCase_ImageHide
-                Update_WinEdit_ImageProperties(#Propertie_Hide, GetGadgetState(EventGadget))
                 
               Case #G_win_EditCase_BtnImageDel
                 Case_AddObject(2)
@@ -4071,88 +3673,75 @@ If OpenWindow(#BDC_Win_Main, 0, 0, winW, winH, "BD creator (Storyboard & comics 
         EndSelect
         
       Case #PB_Event_Menu
-        
-        Select EventWindow()
-          Case #BDC_Win_Main
-            Select EventMenu
-                ;{ File
-              Case #BDC_Menu_OpenDoc
-                Doc_Open()
-                
-              Case #BDC_Menu_SaveDoc
-                Doc_save()
-                
-              Case #BDC_Menu_NewDoc
-                If MessageRequester(lang("Info"),lang("Are you sur to create a new project? All previous work will be lost."),#PB_MessageRequester_YesNo) = #PB_MessageRequester_Yes
-                  Doc_New()
-                EndIf
-                
-              Case #BDC_Menu_ExportPageAsTemplate
-                Doc_ExportPageAstemplate()
-                
-              Case #BDC_Menu_ExportAsImage
-                Doc_ExportImage()
-                
-              Case #BDC_Menu_Projectproperties
-                Window_ProjectProperties()
-                
-              Case #BDC_Menu_quit
-                quit = 1 
-                ;}
-                ;{ View
-              Case #BDC_Menu_ViewShowMarge
-                BDCOptions\showMarge = 1-BDCOptions\showMarge
-                SetMenuItemState(#BDC_Menu_Main, #BDC_Menu_ViewShowMarge,BDCOptions\showMarge)
-                UpdateCanvasMain()
-                
-              Case #BDC_Menu_ViewShowCaseSelected
-                BDCOptions\showSelected = 1-BDCOptions\showSelected
-                SetMenuItemState(#BDC_Menu_Main, #BDC_Menu_ViewShowCaseSelected,BDCOptions\showSelected)
-                UpdateCanvasMain()
-                
-              Case #BDC_Menu_ViewZoom10
-                Canvas_SetZoom(10) 
-                
-              Case #BDC_Menu_ViewZoom15
-                Canvas_SetZoom(15)
-                
-              Case #BDC_Menu_ViewZoom20
-                Canvas_SetZoom(20)
-                
-              Case #BDC_Menu_ViewZoom30
-                Canvas_SetZoom(30) 
-                
-              Case #BDC_Menu_ViewZoom50
-                Canvas_SetZoom(50) 
-                
-              Case #BDC_Menu_ViewZoom70
-                Canvas_SetZoom(70)
-                
-              Case #BDC_Menu_ViewZoom100
-                Canvas_SetZoom(100) 
-                
-              Case #BDC_Menu_ViewZoom200
-                Canvas_SetZoom(200)
-                ;}
-                ;{ Page
-              Case #BDC_Menu_PageAdd
-                Page_Add()
-                
-              Case #BDC_Menu_PageDelete
-                Page_Add(0)
-                ;}
-            EndSelect
+        Select EventMenu
+            ;{ File
+          Case #BDC_Menu_OpenDoc
+            Doc_Open()
             
-          Case #BDC_Win_EditCase
-            Select eventmenu
-              Case #BDC_Menu_WEC_ObjectDelete
-                If GetActiveGadget() = #G_win_EditCase_Canvas And imageiD >-1 And imageid<=ArraySize(Project\page(pageid)\Line(LineId)\caze(CaseID)\image())
-                   Case_AddObject(2)
-                EndIf
-                
-            EndSelect
+          Case #BDC_Menu_SaveDoc
+            Doc_save()
+            
+          Case #BDC_Menu_NewDoc
+            If MessageRequester(lang("Info"),lang("Are you sur to create a new project? All previous work will be lost."),#PB_MessageRequester_YesNo) = #PB_MessageRequester_Yes
+              Doc_New()
+            EndIf
+            
+          Case #BDC_Menu_ExportPageAsTemplate
+            Doc_ExportPageAstemplate()
+            
+          Case #BDC_Menu_ExportAsImage
+            Doc_ExportImage()
+            
+          Case #BDC_Menu_Projectproperties
+            Window_ProjectProperties()
+            
+          Case #BDC_Menu_quit
+            quit = 1 
+            ;}
+            ;{ View
+          Case #BDC_Menu_ViewShowMarge
+            BDCOptions\showMarge = 1-BDCOptions\showMarge
+            SetMenuItemState(#BDC_Menu_Main, #BDC_Menu_ViewShowMarge,BDCOptions\showMarge)
+            UpdateCanvasMain()
+            
+          Case #BDC_Menu_ViewShowCaseSelected
+            BDCOptions\showSelected = 1-BDCOptions\showSelected
+            SetMenuItemState(#BDC_Menu_Main, #BDC_Menu_ViewShowCaseSelected,BDCOptions\showSelected)
+            UpdateCanvasMain()
+            
+          Case #BDC_Menu_ViewZoom10
+            Canvas_SetZoom(10) 
+            
+          Case #BDC_Menu_ViewZoom15
+            Canvas_SetZoom(15)
+            
+          Case #BDC_Menu_ViewZoom20
+            Canvas_SetZoom(20)
+            
+          Case #BDC_Menu_ViewZoom30
+            Canvas_SetZoom(30) 
+            
+          Case #BDC_Menu_ViewZoom50
+            Canvas_SetZoom(50) 
+            
+          Case #BDC_Menu_ViewZoom70
+            Canvas_SetZoom(70)
+            
+          Case #BDC_Menu_ViewZoom100
+            Canvas_SetZoom(100) 
+            
+          Case #BDC_Menu_ViewZoom200
+            Canvas_SetZoom(200)
+            ;}
+            ;{ Page
+          Case #BDC_Menu_PageAdd
+            Page_Add()
+            
+          Case #BDC_Menu_PageDelete
+            Page_Add(0)
+            ;}
         EndSelect
-    
+        
       Case #PB_Event_CloseWindow
         If GetActiveWindow() = #BDC_Win_Main
           quit = 1
@@ -4160,7 +3749,8 @@ If OpenWindow(#BDC_Win_Main, 0, 0, winW, winH, "BD creator (Storyboard & comics 
           If EventWindow() = #BDC_Win_EditCase
             UpdateMaincanvas_withimage()
           EndIf
-          CloseWindow(GetActiveWindow() )
+          
+          CloseWindow(GetActiveWindow())
         EndIf
         
     EndSelect
@@ -4173,10 +3763,10 @@ EndIf
 
 
 ; IDE Options = PureBasic 5.73 LTS (Windows - x86)
-; CursorPosition = 86
-; Folding = BuCKAAAR-8gBA988LAAAAAAeTIY+-A+-PAAQAgGAAwFAcc+CQd0v9Debsb-BAAAx-AuJ+-AAftZHHOAAQHQ--
+; CursorPosition = 495
+; FirstLine = 172
+; Folding = LuBICAkAA-++CAAAAAo4ECm-Pg--DAAEAIAAAIAAGnvAQtDAAfY9mAAAAAAAAAAA5rzBCAAAAAA9
 ; EnableXP
 ; Executable = _release\bdcreator.exe
-; DisableDebugger
 ; Warnings = Display
 ; EnablePurifier
