@@ -107,21 +107,29 @@
 
 ; 5.9.2021 0.13 (17)
 ; // New
-; wip - Window_bubble : add gadget "update in realtime"
+; - Window_bubble : add gadget "update in realtime" (save in BDCoptions)
+; - Window_bubble : set the changes only if update in realtime =1
+; - Doc_Open() : add caze()\color, caze()\image()\hide,contrast
+; - Doc_Save() : add caze()\color, caze()\image()\hide,contrast
 ; - UnPreMultiplyAlpha(image) (not used for the moment)
 ; - add several macro (ckeck, check ifinf, if sup....)
 ; - Image_brightness(image, value)
+; - wec : clic on case color : open colorrequester -> set case color
+; - wec : add gadget : case color
 ; - wec : add gadgets : image brightness, contrast
 ; - wec : we can change image brightness & contrast
 ; // changes
 ; - wec : we can only select an image if not hiden
 ; - some changes in UpdateMaincanvas_withimage() 
 ; - when create the image, I copy image()\img in image()\imgtemp, to keep the original (imgtemp)
+; - wec : some changes in the size of gadgets (height of scrollarea and canvas, width of gadget...).
 ; // Fixes
 ;  - change bdcoptions\pathsave when saving document and the folder is now bdcoptions\pathsave
 ;  - change bdcoptions\pathopen when open document and the folder is now bdcoptions\pathopen
 ;  - export image : open the folder on bdcoptions\pathexaport (and save the path)
 ;  - export as template : open the folder on data\template
+;  - when select object image, hide gadget isn't updated.
+;  - when move mouse with imageID=-1 : crash
 
 
 ; 4.9.2021 0.12 (16)
@@ -504,6 +512,7 @@ Enumeration
   #G_win_EditCase_Panel
   #G_win_EditCase_SA
   #G_win_EditCase_ImageList
+  #G_win_EditCase_CaseColor
   #G_win_EditCase_BtnTextAdd
   #G_win_EditCase_BtnTextSet
   #G_win_EditCase_BtnTextTyp ; buble ellipse, text square
@@ -759,6 +768,7 @@ Structure sBDCOptions
   PanelW.w
   ToolbarH.a
   Zoom.w
+  
   ; show / hide
   ShowMarge.a
   ShowSelected.a
@@ -773,7 +783,8 @@ Structure sBDCOptions
   ; options Window Editcase
   CaseBankScale.w
   CaseBankDepth.w
-  
+  ; window buble
+  WinBuble_UpdateRT.a
 EndStructure
 Global BDCOptions.sBDCOptions
 
@@ -1084,7 +1095,6 @@ Procedure IE_ColorBalance(img, r1, g1, b1, mode= 0)
 EndProcedure
 
 ;}
-
 
 ;{ pages
 Procedure ChangePixelToCm(w, nbdpi, mode=0)
@@ -2250,6 +2260,12 @@ Procedure Doc_Open()
               \StrokeAlpha = Val(StringField(line$, u, d$)) : u+1
               \StrokeSize = Val(StringField(line$, u, d$)) : u+1
               \StrokeColor = Val(StringField(line$, u, d$)) : u+1
+              \Color = Val(StringField(line$, u, d$)) : u+1
+              If Val(version$)<=0.12
+                If \color=0
+                  \color = RGB(255,255,255)
+                EndIf
+              EndIf
             EndWith
             ;}
             
@@ -2285,6 +2301,8 @@ Procedure Doc_Open()
               \miror = Val(StringField(line$, u, d$)) : u+1
               \rotation = Val(StringField(line$, u, d$)) : u+1
               \brightness = Val(StringField(line$, u, d$)) : u+1
+              \Contrast = Val(StringField(line$, u, d$)) : u+1
+              \hide = Val(StringField(line$, u, d$)) : u+1
               
               ; then update the case
               If \file$ <> #Empty$ Or \text$ <> #Empty$ Or \fontName$ <> #Empty$
@@ -2383,7 +2401,7 @@ Procedure Doc_Save(filename$=#Empty$, saveas=0)
                   txt$ + Str(\x)+d$+Str(\y)+d$+Str(\w)+d$+Str(\h)+d$
                   txt$ + Str(\Depth)+d$+Str(\SizeBorder)+d$+Str(\NoBorder)+d$
                   txt$ + Str(\NotuseMargeTop)+d$+Str(\NotuseMargeBottom)+d$+Str(\NotuseMargeL)+d$+Str(\NotuseMargeR)+d$
-                  txt$ + Str(\StrokeSet)+d$+Str(\StrokeAlpha)+d$+Str(\StrokeSize)+d$+Str(\StrokeColor)+d$
+                  txt$ + Str(\StrokeSet)+d$+Str(\StrokeAlpha)+d$+Str(\StrokeSize)+d$+Str(\StrokeColor)+d$+Str(\Color)+d$
                   WriteStringN(0, txt$) 
                 EndWith
                 
@@ -2404,7 +2422,7 @@ Procedure Doc_Save(filename$=#Empty$, saveas=0)
                       txt$ + ReplaceString(\file$, ",",virg$)+d$+ReplaceString(\text$,",",virg$)+d$
                       txt$ + \fontName$+d$+Str(\fontSize)+d$+ReplaceString(\fontText$,",",virg$)+d$
                       txt$ + Str(\fontWidth)+d$+Str(\TextX)+d$+Str(\TextY)+d$+Str(\BubleArrowTyp)+d$
-                      txt$ + Str(\miror)+d$+Str(\rotation)+d$+Str(\brightness)+d$
+                      txt$ + Str(\miror)+d$+Str(\rotation)+d$+Str(\brightness)+d$+Str(\Contrast)+d$+Str(\hide)+d$
                       WriteStringN(0, txt$) 
                     EndIf
                   EndWith
@@ -2624,8 +2642,6 @@ Procedure Window_ImageAdujstement(mode=0)
   EndIf
 EndProcedure
 
-
-
 ; window Edit case
 Procedure WEC_updateShortcut(create=1)
   ;   To add or delete shortcuts
@@ -2770,15 +2786,22 @@ Procedure UpdateCanvas_WinEditCase()
   
   ; update
   If StartVectorDrawing(CanvasVectorOutput(#G_win_EditCase_Canvas))
-    
+      
     ; white Background
     AddPathBox(0,0,w,h)
     VectorSourceColor(RGBA(255,255,255,255))
     FillPath()
     
-    ScaleCoordinates(vs,vs)
-    
     With project\page(pageId)\Line(LineId)\caze(CaseId)
+      
+      ScaleCoordinates(vs,vs)
+      
+      ; Draw The background color Or gradient
+      AddPathBox(vx,vy,w1,h1)
+      VectorSourceColor(RGBA(Red(\Color),Green(\color),Blue(\Color),255))
+      FillPath()
+      
+    
       ; draw image of the case
       For i=0 To ArraySize(\image())
         If \image(i)\hide = 0
@@ -2832,6 +2855,7 @@ Procedure Window_EditCase_SetGadgetState()
       SetGadgetState(#G_win_EditCase_ImageAlpha, \alpha)
       SetGadgetState(#G_win_EditCase_ImageDepth, \depth)
       SetGadgetState(#G_win_EditCase_ImageH, \h)
+      SetGadgetState(#G_win_EditCase_ImageHide, \hide)
       SetGadgetState(#G_win_EditCase_ImageScale, \scale)
       SetGadgetState(#G_win_EditCase_ImageW, \w)
       SetGadgetState(#G_win_EditCase_ImageMiror, \miror)
@@ -2893,7 +2917,7 @@ Procedure WEC_ImageAdjust()
   EndIf
   
 EndProcedure
-Procedure Case_Update(img,text$,file$,set=0,scale=-1,alpha=255,typ=0,shapetyp=0,depth=-57267,miror=0,rot=0, Brightness=100)
+Procedure Case_Update(img,text$,file$,set=0,scale=-1,alpha=255,typ=0,shapetyp=0,depth=-57267,miror=0,rot=0, Brightness=100,Contrast=100)
   Shared wec_fontname$, wec_fontsize
   If scale=-1
     scale = BDCOptions\CaseBankScale
@@ -2943,6 +2967,7 @@ Procedure Case_Update(img,text$,file$,set=0,scale=-1,alpha=255,typ=0,shapetyp=0,
       \image(n)\miror = miror
       \image(n)\rotation = rot
       \image(n)\brightness = brightness
+      \image(n)\Contrast = Contrast
       
       ImageId = n
       
@@ -3265,7 +3290,8 @@ Procedure WinBuble_UpdateGadgets()
    EndWith
    
 EndProcedure
-Procedure Window_EDitBubble()
+Procedure Window_EditBubble()
+  
   
   winw = 400
   winH = 500 ; WindowHeight(#BDC_Win_Main)
@@ -3282,10 +3308,11 @@ Procedure Window_EDitBubble()
       AddGadget(#G_win_EditBuble_TextY, #Gad_spin,x,y,w1,h1,"",-100000,100000,lang("Change the Y position of the text"),\TextY,lang("Y")) : y+h1+a
       AddGadget(#G_win_EditBuble_TextChooseFont, #Gad_btn,x,y,w1,h1,\fontName$,0,0,lang("Change the font of the text"),0,lang("Font")) : y+h1+a
       
-      AddGadget(#G_win_EditBuble_BubleArrowPosition, #Gad_Cbbox,x,y,w1,h1,"",0,0,lang("Set the arrow position for the bubble"),0,lang("Arrow")) : y+h1+30
+      AddGadget(#G_win_EditBuble_BubleArrowPosition, #Gad_Cbbox,x,y,w1,h1,"",0,0,lang("Set the arrow position for the bubble"),0,lang("Arrow")) : y+h1+a
       ; should be the same as Bubble Arrow typ 
       Gadget_AddItems(#G_win_EditBuble_BubleArrowPosition,"BottomMidlle,BottomLeft,BottomRight,TopMiddle,TopLeft,TopRight,CenterLeft,CenterRight,",\BubleArrowTyp) 
       
+      AddGadget(#G_win_EditBuble_UpdateRealTime, #Gad_Chkbox,x,y,w1,h1,lang("Update in realtime"),0,0,lang("Update changes in realtime"),BDCOptions\WinBuble_updateRT,lang("Update")): y+h1+30
       AddGadget(#G_win_EditBuble_BtnOk, #Gad_btn,x,y,w1,h1,lang("Ok"),0,0,lang("Set the changes For the text"))
 
       ;     #G_win_EditBuble_BubleArrowShapeTyp
@@ -3404,7 +3431,7 @@ Procedure Event_WinEditcaseCanvas()
               oldImageId = ImageID
               UpdateCanvas_WinEditCase()
             EndIf
-          If imageId>-1 And image <= ArraySize(\image()) 
+          If GetImageIdIsOk()
             wec_start\x = x - \image(ImageID)\x
             wec_start\y = y - \image(ImageID)\y
             wec_startscale = \image(ImageID)\scale
@@ -3418,14 +3445,14 @@ Procedure Event_WinEditcaseCanvas()
 ;       EndWith
       
     ElseIf EventType() = #PB_EventType_MouseMove
-      If wec_clic
+      If wec_clic And GetImageIdIsOk()
         ; move the selected object
          x = GetGadgetAttribute(gad, #PB_Canvas_MouseX)/z 
          y = GetGadgetAttribute(gad, #PB_Canvas_MouseY)/z
          ; Debug Str(x)+"/"+Str(y)
         
          With project\page(pageId)\Line(LineId)\caze(CaseID)
-           If wec_ctrl=0
+           If wec_ctrl=0 
              \image(ImageID)\x = x - wec_start\x
              \image(ImageID)\y = y - wec_start\y
              SetGadgetState(#G_win_EditCase_ImageX,  \image(ImageID)\x)
@@ -3580,9 +3607,11 @@ Procedure Window_EditCase()
     ;}
     
     ;{ add gadgets
-    x=5 : y=5 : wp=250 : h=200 : h1=30 : w1=wp-110 : h0=winh-y*2-10 : a=2
+    b= 15
+    x=5 : y=5 : wp=250 : h=200 : h1=30 : w1=wp-105-b : h0=winh-y*2-20 : a=2
+    h01 =h0-40
     If PanelGadget(#G_win_EditCase_Panel,x,y,wp,h0)
-      wp-10
+      wp-b
       
       ;{ tab "bank"
       AddGadgetItem(#G_win_EditCase_Panel,-1,lang("Bank"))
@@ -3599,8 +3628,8 @@ Procedure Window_EditCase()
                 BDCOptions\CaseBankScale,lang("Scale")) : y+h1+a
 
       x=5
-      If ScrollAreaGadget(#G_win_EditCase_BankSA,x,y,wp,h0,wp-25,h0+200)
-        If CanvasGadget(#G_win_EditCase_Bankcanvas,0,0,wp-30,h0)
+      If ScrollAreaGadget(#G_win_EditCase_BankSA,x,y,wp,h01-h1*4,wp-25,h01+400)
+        If CanvasGadget(#G_win_EditCase_Bankcanvas,0,0,wp-30,h01)
           WEC_updateBankCanvas()
         EndIf
         CloseGadgetList()
@@ -3617,8 +3646,8 @@ Procedure Window_EditCase()
       ;{ tab "case"
       AddGadgetItem(#G_win_EditCase_Panel,-1,lang("Case"))
       x=5 : y=5
-      If ScrollAreaGadget(#PB_Any,x,y,wp,h0,wp-25,h0+250)
-        cont = ContainerGadget(#PB_Any,0,0,wp,h0+1200)
+      If ScrollAreaGadget(#PB_Any,x,y,wp,h01,wp-25,h01+400)
+        cont = ContainerGadget(#PB_Any,0,0,wp,h01+1200)
         If cont>0
           c= 200
           SetGadgetColor(cont, #PB_Gadget_BackColor, RGB(c,c,c))
@@ -3627,6 +3656,7 @@ Procedure Window_EditCase()
           ;AddGadget(#G_win_EditCase_ObjetType, #Gad_Cbbox,x,y,w1,h1,Lang("Type"),0,0,lang("Set the type for object"),0,lang("Type")) : y+h1+5
           ;Gadget_AddItems(#G_win_EditCase_ObjetType,"Image,Text,") 
           
+          AddGadget(#G_win_EditCase_CaseColor, #Gad_Btn,x,y,w1,h1,Lang("Color"),0,0,lang("Change the color of the background of the case"),0,lang("Color")) : y+h1+a
           AddGadget(#G_win_EditCase_BtnTextAdd, #Gad_Btn,x,y,w1,h1,Lang("Add"),0,0,lang("add a text on the case"),0,lang("Text")) : y+h1+a
           AddGadget(#G_win_EditCase_BtnTextSet, #Gad_Btn,x,y,w1,h1,Lang("Set"),0,0,lang("add a text on the case"),0,lang("Text")) : y+h1+5
           AddGadget(#G_win_EditCase_BtnTextTyp, #Gad_Cbbox,x,y,w1,h1,"",0,0,lang("Set the type  text on the Case"),0,lang("Type")) : y+h1+5
@@ -3921,6 +3951,7 @@ If OpenWindow(#BDC_Win_Main, 0, 0, winW, winH, "BD creator (Storyboard & comics 
             If Project\page(pageid)\Line(LineId)\caze(CaseID)\nbImage>=0
               With Project\page(pageid)\Line(LineId)\caze(CaseID)\image(ImageID)
                 Select EventGadget
+                    
                   Case #G_win_EditBuble_TextSize,#G_win_EditBuble_TextY, #G_win_EditBuble_TextX, #G_win_EditBuble_TextString,#G_win_EditBuble_TextWidth,#G_win_EditBuble_BubleArrowPosition
                     \fontSize = GetGadgetState(#G_win_EditBuble_TextSize)
                     \fontText$ = GetGadgetText(#G_win_EditBuble_TextString)
@@ -3928,11 +3959,16 @@ If OpenWindow(#BDC_Win_Main, 0, 0, winW, winH, "BD creator (Storyboard & comics 
                     \TextX = GetGadgetState(#G_win_EditBuble_TextX)
                     \TextY = GetGadgetState(#G_win_EditBuble_TextY)
                     \BubleArrowTyp = GetGadgetState(#G_win_EditBuble_BubleArrowPosition)
-                    Case_SetText(\fontText$, 0, 0)
+                    If GetGadgetState(#G_win_EditBuble_UpdateRealTime)
+                      Case_SetText(\fontText$, 0, 0)
+                    EndIf
                     
                   Case #G_win_EditBuble_TextChooseFont
                     Case_SetTextFont(1)
                     Case_SetText(\fontText$, 0, 0)
+                    
+                  Case #G_win_EditBuble_UpdateRealTime
+                    BDCOptions\WinBuble_UpdateRT = GetGadgetState(#G_win_EditBuble_UpdateRealTime)
                     
                   Case #G_win_EditBuble_BtnOk
                     Case_SetText(\fontText$, 0, 0)
@@ -3982,6 +4018,13 @@ If OpenWindow(#BDC_Win_Main, 0, 0, winW, winH, "BD creator (Storyboard & comics 
               Case #G_win_EditCase_ImageList
                 imageId = GetGadgetState(#G_win_EditCase_ImageList)
                 Window_EditCase_SetGadgetState()
+                
+              Case #G_win_EditCase_CaseColor
+                color = ColorRequester(Project\page(pageid)\Line(LineId)\caze(CaseID)\Color)
+                If color>-1 And color <> Project\page(pageid)\Line(LineId)\caze(CaseID)\Color
+                  Project\page(pageid)\Line(LineId)\caze(CaseID)\Color = color
+                  UpdateCanvas_WinEditCase()
+                EndIf
                 
               Case #G_win_EditCase_BtnTextAdd
                 Case_AddObject(1)
@@ -4173,10 +4216,10 @@ EndIf
 
 
 ; IDE Options = PureBasic 5.73 LTS (Windows - x86)
-; CursorPosition = 86
-; Folding = BuCKAAAR-8gBA988LAAAAAAeTIY+-A+-PAAQAgGAAwFAcc+CQd0v9Debsb-BAAAx-AuJ+-AAftZHHOAAQHQ--
+; CursorPosition = 109
+; FirstLine = 21
+; Folding = BuDaAAAR-8gBA988LAAAAAAeTIY+-A+-PAAwAgOAgC-Xrx6LA22-yPstxu0HAAAE-j8G5-bD9l+dc5AA58B1--
 ; EnableXP
 ; Executable = _release\bdcreator.exe
-; DisableDebugger
 ; Warnings = Display
 ; EnablePurifier
