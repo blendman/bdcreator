@@ -105,28 +105,6 @@
 ; - WEC : onglet presets case (save case preset, add the preset in the case (add all elements)
 ; - use image center to place the image
 
-; bug : 
-; - realt time option (text window) not update when open window)
-
-
-; 25.9.2021 0.13.5 (19)
-; // fixes
-; - miror not update when open wec
-; - fixe a bug when open a file with case with only 1 image (\nbimage wasn't updated)
-
-
-; 22.9.2021 0.13.5 (18)
-; // New
-; - window case : add zoom
-; - bubble window : gadget "nobubble"
-; - autosave
-; - reset image Size (w\h)
-; // Changes
-; - when open a doc, it create image on \image and should copy it to \imgtemp
-; // fixes
-; - fixe a bug in WEC_ImageAdjust()
-
-
 ; 5.9.2021 0.13 (17)
 ; // New
 ; - Window_bubble : add gadget "update in realtime" (save in BDCoptions)
@@ -379,7 +357,7 @@
 ;}
 
 
-#BDC_ProgramVersion = "0.13.6"
+#BDC_ProgramVersion = "0.13"
 #BDC_ProgramName = "BD Creator"
 Enumeration 
   
@@ -522,7 +500,6 @@ Enumeration
   
   ;{ other windows
   ;{ window Edit case
-  #G_win_EditCase_Zoom
   ; Panel bank
   #G_win_EditCase_BankFolder
   #G_win_EditCase_BankSubFolder
@@ -558,7 +535,6 @@ Enumeration
   #G_win_EditCase_ImageAlpha
   #G_win_EditCase_ImageDepth
   #G_win_EditCase_ImageHide
-  #G_win_EditCase_ImageResetSize
   ;}
   
   ;{ window Edit Bubble
@@ -571,8 +547,6 @@ Enumeration
   #G_win_EditBuble_TextChooseFont
   #G_win_EditBuble_BubleArrowShapeTyp
   #G_win_EditBuble_BubleArrowPosition
-  #G_win_EditBuble_NoBubble
-  #G_win_EditBuble_BubbleTyp
   #G_win_EditBuble_UpdateRealTime
   #G_win_EditBuble_BtnOk
   ;}
@@ -628,8 +602,6 @@ Enumeration
   #propertie_Rotation
   #propertie_Miror
   #propertie_Contrast
-  #Propertie_ResetSize
-  
   ;}
   
   ;{ case typ
@@ -673,11 +645,7 @@ Structure sImg
   fontName$
   fontSize.w
   fontWidth.w
-  
   BubleArrowTyp.a
-  NoBubble.a
-  BubbleTyp.a
-  
   TextX.w
   TextY.w
   
@@ -817,7 +785,6 @@ Structure sBDCOptions
   CaseBankDepth.w
   ; window buble
   WinBuble_UpdateRT.a
-  WinBuble_NOBubble.a
 EndStructure
 Global BDCOptions.sBDCOptions
 
@@ -2311,8 +2278,6 @@ Procedure Doc_Open()
             If  imageId > ArraySize(project\page(pageID)\Line(lineId)\caze(Caseid)\image())
               ReDim project\page(pageID)\Line(LineId)\caze(Caseid)\image(imageId)
               project\page(pageID)\Line(LineId)\caze(Caseid)\nbImage = ArraySize(project\page(pageID)\Line(lineId)\caze(Caseid)\image())
-            Else
-              project\page(pageID)\Line(LineId)\caze(Caseid)\nbImage = ArraySize(project\page(pageID)\Line(lineId)\caze(Caseid)\image())
             EndIf
             With project\page(pageID)\Line(Lineid)\caze(caseId)\image(imageId)
               \x = Val(StringField(line$, u, d$)) : u+1
@@ -2338,17 +2303,15 @@ Procedure Doc_Open()
               \brightness = Val(StringField(line$, u, d$)) : u+1
               \Contrast = Val(StringField(line$, u, d$)) : u+1
               \hide = Val(StringField(line$, u, d$)) : u+1
-              \NoBubble = Val(StringField(line$, u, d$)) : u+1
               
               ; then update the case
               If \file$ <> #Empty$ Or \text$ <> #Empty$ Or \fontName$ <> #Empty$
                 If \typ = #CaseTyp_Img
                   If FileSize(\file$) >0 
-                    \img = LoadImage(#PB_Any, \file$)
-                    \imgtemp = CopyImage(\img, #PB_Any)
+                    project\page(pageID)\Line(Lineid)\caze(caseId)\image(ImageId)\img = LoadImage(#PB_Any, \file$)
                   EndIf
                 ElseIf \typ =#CaseTyp_Text
-                  \img = Case_SetText(\text$, 1)
+                  project\page(pageID)\Line(Lineid)\caze(caseId)\image(ImageId)\img = Case_SetText(\text$, 1)
                 EndIf
                 UpdateMaincanvas_withimage()
               EndIf
@@ -2388,7 +2351,7 @@ Procedure Doc_Save(filename$=#Empty$, saveas=0)
     
     BDCOptions\PathSave$ = ReplaceString(GetPathPart(filename$),GetCurrentDirectory(),"")
     
-    If saveas=-1 Or GetFileExists(filename$) = 0 
+    If GetFileExists(filename$) = 0
         If CreateFile(0, filename$)
           d$ =","
           e$=";"
@@ -2460,7 +2423,6 @@ Procedure Doc_Save(filename$=#Empty$, saveas=0)
                       txt$ + \fontName$+d$+Str(\fontSize)+d$+ReplaceString(\fontText$,",",virg$)+d$
                       txt$ + Str(\fontWidth)+d$+Str(\TextX)+d$+Str(\TextY)+d$+Str(\BubleArrowTyp)+d$
                       txt$ + Str(\miror)+d$+Str(\rotation)+d$+Str(\brightness)+d$+Str(\Contrast)+d$+Str(\hide)+d$
-                      txt$ + Str(\NoBubble)+d$+Str(\BubbleTyp)+d$
                       WriteStringN(0, txt$) 
                     EndIf
                   EndWith
@@ -2652,48 +2614,6 @@ Procedure Doc_ExportPageAstemplate()
   EndIf
 
 EndProcedure
-
-Procedure Autosave()
-  Static AutosaveTimeStart, AutosaveFileName$
-  
-  AutosaveTime = 1
-  
-  autosavetime_ = ElapsedMilliseconds() - AutosaveTimeStart
-   If autosavetime_ >= AutosaveTime * 60000
-      AutosaveTimeStart = ElapsedMilliseconds()
-      
-      ; First, examine if directories exists // d'abord on vérifie que le dossier "save existe
-      saveDir$ = GetCurrentDirectory()+"save\"
-      If ExamineDirectory(0, GetCurrentDirectory(), "")
-        While NextDirectoryEntry(0)
-          If DirectoryEntryType(0) = #PB_DirectoryEntry_Directory
-            If DirectoryEntryName(0) = "save"
-              trouve = 1
-            EndIf
-          EndIf
-        Wend 
-        FinishDirectory(0)
-      EndIf
-      
-      If trouve = 0
-        If CreateDirectory(saveDir$) = 0
-          MessageRequester(Lang("Error"), lang("Unable to create the 'save' directory."))
-          saveDir$ = GetCurrentDirectory()
-        EndIf
-      EndIf
-      ; create autosave if needed
-      Date$ = FormatDate("%yyyy%mm%dd%hh%ii%ss", Date()) 
-      
-      If AutosaveFileName$ = ""
-        AutosaveFileName$ = saveDir$+"AutoSave_"+Date$+hour$
-      EndIf
-      
-      Doc_Save(AutosaveFileName$,-1)
-      
-    EndIf
-    
-EndProcedure  
-
 ;}
 
 ;{ other window
@@ -2950,7 +2870,6 @@ Procedure Window_EditCase_UpdateList()
   ClearGadgetItems(#G_win_EditCase_ImageList)
   With project\page(pageID)\Line(LineId)\caze(CaseID)
     If \nbImage>-1
-      Debug "ok updatelist 1"
       For i=0 To ArraySize(\image())
         file$ = \image(i)\file$
         If \image(i)\typ = #CaseTyp_Text
@@ -2968,9 +2887,6 @@ Procedure WEC_ImageAdjust()
     With Project\page(pageid)\Line(lineId)\caze(caseId)\image(ImageID)
       
       If \brightness Or \Contrast>1
-        If Not IsImage(\imgtemp)
-          
-        EndIf
         
         tempImgPaper = CopyImage(\imgtemp, #PB_Any)
         
@@ -3110,7 +3026,6 @@ Procedure Case_SetText(text$, update=0, usefontrequester=1)
     Else
      
       With project\page(pageID)\Line(LineId)\caze(CaseID)\image(imageId)
-        Nobubble = \NoBubble
         shapeTyp = \shapetyp
         wec_fontname$ = \fontName$
         wec_fontSize = \fontSize
@@ -3181,7 +3096,6 @@ Procedure Case_SetText(text$, update=0, usefontrequester=1)
     img = CreateImage(#PB_Any,w,h1,32,#PB_Image_Transparent)
     If StartVectorDrawing(ImageVectorOutput(img))
       
-      If Nobubble = 0
       ; for the arrow of the buble
        u = 0
       xa1 = w1/2-w3
@@ -3240,8 +3154,7 @@ Procedure Case_SetText(text$, update=0, usefontrequester=1)
       AddPathLine(xa3+u,ya3+u)
       VectorSourceColor(RGBA(255,255,255,255))
       FillPath()
-     EndIf
-    
+      
       ; text
       VectorFont(FontID(0), 1 * s)
       VectorSourceColor(RGBA(0,0,0,255))
@@ -3399,8 +3312,7 @@ Procedure Window_EditBubble()
       ; should be the same as Bubble Arrow typ 
       Gadget_AddItems(#G_win_EditBuble_BubleArrowPosition,"BottomMidlle,BottomLeft,BottomRight,TopMiddle,TopLeft,TopRight,CenterLeft,CenterRight,",\BubleArrowTyp) 
       
-      AddGadget(#G_win_EditBuble_UpdateRealTime, #Gad_Chkbox,x,y,w1,h1,lang("Update in realtime"),0,0,lang("Update changes in realtime"),BDCOptions\WinBuble_updateRT,lang("Update")): y+h1+a
-      AddGadget(#G_win_EditBuble_NoBubble, #Gad_Chkbox,x,y,w1,h1,lang("Pas de bulle"),0,0,lang("Afficher ou on une bulle"),BDCOptions\WinBuble_NOBubble,lang("Pas de bulle")): y+h1+30
+      AddGadget(#G_win_EditBuble_UpdateRealTime, #Gad_Chkbox,x,y,w1,h1,lang("Update in realtime"),0,0,lang("Update changes in realtime"),BDCOptions\WinBuble_updateRT,lang("Update")): y+h1+30
       AddGadget(#G_win_EditBuble_BtnOk, #Gad_btn,x,y,w1,h1,lang("Ok"),0,0,lang("Set the changes For the text"))
 
       ;     #G_win_EditBuble_BubleArrowShapeTyp
@@ -3435,11 +3347,6 @@ Procedure Update_WinEdit_ImageProperties(propertie, n)
           \image(ImageID)\x = n
         Case #Propertie_Y
           \image(ImageID)\y = n 
-        Case #Propertie_ResetSize
-           \image(ImageID)\w = ImageWidth(\image(imageId)\imgtemp)
-           \image(ImageID)\h = ImageHeight(\image(imageId)\imgtemp)
-           SetGadgetState(#G_win_EditCase_ImageW, \image(ImageID)\w)
-           SetGadgetState(#G_win_EditCase_ImageH, \image(ImageID)\h)
         Case #Propertie_W
           \image(ImageID)\w = n 
         Case #Propertie_H
@@ -3502,14 +3409,7 @@ Procedure Event_WinEditcaseCanvas()
       If wec_clic=0
         wec_clic =1
         
-        If wec_space = 1
-          
-          wec_startX = x
-          wec_startY = y
-          
-        Else
-        
-          With project\page(pageId)\Line(LineId)\caze(CaseID)
+        With project\page(pageId)\Line(LineId)\caze(CaseID)
           
           ; select the image under the clic mouseleft
           oldImageId = imageId
@@ -3537,7 +3437,6 @@ Procedure Event_WinEditcaseCanvas()
             wec_startscale = \image(ImageID)\scale
           EndIf
          EndWith
-        EndIf
       EndIf
 ;       ; select the object (image or text)
 ;       With project\page(pageId)\Line(LineId)\caze(CaseID)
@@ -3546,12 +3445,7 @@ Procedure Event_WinEditcaseCanvas()
 ;       EndWith
       
     ElseIf EventType() = #PB_EventType_MouseMove
-      
-      If wec_Space = 1   
-        
-      Else
-        
-       If wec_clic And GetImageIdIsOk()
+      If wec_clic And GetImageIdIsOk()
         ; move the selected object
          x = GetGadgetAttribute(gad, #PB_Canvas_MouseX)/z 
          y = GetGadgetAttribute(gad, #PB_Canvas_MouseY)/z
@@ -3573,47 +3467,14 @@ Procedure Event_WinEditcaseCanvas()
               SetGadgetState(#G_win_EditCase_ImageX,  \image(ImageID)\x)
            EndIf
            UpdateCanvas_WinEditCase()
-          
          EndWith
          
       EndIf
       
-     EndIf
-      
-    
-    
-   EndIf
-   
-     
-    ElseIf EventType() = #PB_EventType_MouseWheel
-  ;{ zoom
-    delta = GetGadgetAttribute(gad, #PB_Canvas_WheelDelta)
-    If delta =1
-      If wec_Zoom<30
-        wec_Zoom + 1
-      ElseIf wec_Zoom<100
-        wec_Zoom + 10
-      Else
-        wec_Zoom + 20
-      EndIf
-        UpdateCanvas_WinEditCase()
-    ElseIf delta = -1
-      If wec_Zoom > 100
-        wec_Zoom -20
-      ElseIf wec_Zoom > 30
-        wec_Zoom -10
-      ElseIf wec_Zoom > 1
-        wec_Zoom -1
-      EndIf
-     
-       UpdateCanvas_WinEditCase()
-    EndIf
-    
-    ;}
-    
     EndIf
     
     
+  EndIf
   
   If EventType() = #PB_EventType_LeftButtonUp
     WEC_clic = 0
@@ -3818,7 +3679,6 @@ Procedure Window_EditCase()
           AddGadget(#G_win_EditCase_ImageW, #Gad_spin,x,y,w1,h1,LAng("Width"),1,100000,lang("Change the width of the image"),0,lang("w")) : y+h1+a
           AddGadget(#G_win_EditCase_ImageH, #Gad_spin,x,y,w1,h1,LAng("Height"),1,100000,lang("Change the height of the image"),0,lang("H")) : y+h1+a
           AddGadget(#G_win_EditCase_ImageAlpha, #Gad_spin,x,y,w1,h1,"",0,255,lang("Change the opacity of the image"),0,lang("Alpha")) : y+h1+a
-          AddGadget(#G_win_EditCase_ImageResetSize, #Gad_Btn,x,y,w1,h1,lang("Reset"),0,255,lang("REset the size of the image"),0,lang("Reset")) : y+h1+a
           CloseGadgetList()
         EndIf
         CloseGadgetList()
@@ -4092,14 +3952,13 @@ If OpenWindow(#BDC_Win_Main, 0, 0, winW, winH, "BD creator (Storyboard & comics 
               With Project\page(pageid)\Line(LineId)\caze(CaseID)\image(ImageID)
                 Select EventGadget
                     
-                  Case #G_win_EditBuble_TextSize,#G_win_EditBuble_TextY, #G_win_EditBuble_TextX, #G_win_EditBuble_TextString,#G_win_EditBuble_TextWidth,#G_win_EditBuble_BubleArrowPosition, #G_win_EditBuble_NoBubble
+                  Case #G_win_EditBuble_TextSize,#G_win_EditBuble_TextY, #G_win_EditBuble_TextX, #G_win_EditBuble_TextString,#G_win_EditBuble_TextWidth,#G_win_EditBuble_BubleArrowPosition
                     \fontSize = GetGadgetState(#G_win_EditBuble_TextSize)
                     \fontText$ = GetGadgetText(#G_win_EditBuble_TextString)
                     \fontWidth = GetGadgetState(#G_win_EditBuble_TextWidth)
                     \TextX = GetGadgetState(#G_win_EditBuble_TextX)
                     \TextY = GetGadgetState(#G_win_EditBuble_TextY)
                     \BubleArrowTyp = GetGadgetState(#G_win_EditBuble_BubleArrowPosition)
-                    \NoBubble = GetGadgetState(#G_win_EditBuble_NoBubble)
                     If GetGadgetState(#G_win_EditBuble_UpdateRealTime)
                       Case_SetText(\fontText$, 0, 0)
                     EndIf
@@ -4205,9 +4064,6 @@ If OpenWindow(#BDC_Win_Main, 0, 0, winW, winH, "BD creator (Storyboard & comics 
                 
               Case #G_win_EditCase_ImageScale
                 Update_WinEdit_ImageProperties(#Propertie_Scale, GetGadgetState(EventGadget))
-                
-              Case #G_win_EditCase_ImageResetSize
-                Update_WinEdit_ImageProperties(#Propertie_ResetSize, 1)
                 
               Case #G_win_EditCase_ImageHide
                 Update_WinEdit_ImageProperties(#Propertie_Hide, GetGadgetState(EventGadget))
@@ -4352,8 +4208,6 @@ If OpenWindow(#BDC_Win_Main, 0, 0, winW, winH, "BD creator (Storyboard & comics 
         
     EndSelect
     
-    Autosave()
-    
   Until Quit >= 1
   
 EndIf
@@ -4362,9 +4216,9 @@ EndIf
 
 
 ; IDE Options = PureBasic 5.73 LTS (Windows - x86)
-; CursorPosition = 115
-; FirstLine = 36
-; Folding = BuDIABAR-8gBA988rAEAAOAeTIY+-A+-PAAwAgPAgf-Xrx6LA+XX-b-w3+8t-gHYBx-wuRe-Z+AfpdHHOAA+cA0-
+; CursorPosition = 109
+; FirstLine = 21
+; Folding = BuDaAAAR-8gBA988LAAAAAAeTIY+-A+-PAAwAgOAgC-Xrx6LA22-yPstxu0HAAAE-j8G5-bD9l+dc5AA58B1--
 ; EnableXP
 ; Executable = _release\bdcreator.exe
 ; Warnings = Display
