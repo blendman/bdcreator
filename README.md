@@ -1,7 +1,7 @@
 
 ## BDCreator
 
-BDCreator is a free and open-source software developped by Blendman, in purebasic. With this software you can create BD (bandes Dessinées), Comics, Manga, Storyboard (For comics, BD, manga...). This sofware is open-source under GPL3 licence, please read the lience file for more information.
+BDCreator is a free and open-source software developped by Blendman, in purebasic. With this software you can create BD (bandes Dessinées), Comics, Manga, Storyboard (For comics, BD, manga...). This sofware is open-source under GPL3 licence, please read the licence file for more information.
 
 BDCreator is developped in [Purebasic][1] and has been created by Blendman (Since 2021).(Help to compile : Purebasic forums english) [Purebasic User Forum (english)][2]
 
